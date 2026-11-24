@@ -18,6 +18,11 @@
 #                     Maven Central): espejo de Google para Maven
 #                     Central, caché de Gradle y hasta 4 intentos de
 #                     compilación con espera creciente.
+#   v1.2  24/11/2026  Se retira el espejo de Maven Central: el plugin de
+#                     Flutter solo admite los repositorios de su propio
+#                     settings.gradle y rechazaba el agregado. Se mantienen
+#                     la caché de Gradle y los reintentos; esperas más
+#                     largas (90 s, 3 min y 5 min).
 # Mantenimiento: tras cada «Sync fork», si la compilación falla,
 # copiar aquí las versiones del bloque env de flutter-build.yml.
 # ============================================================
@@ -176,23 +181,6 @@ jobs:
           restore-keys: |
             cripto-gradle-${{ runner.os }}-
 
-      # v1.1 — Espejo oficial de Google para Maven Central (evita el error 429).
-      - name: Espejo de Maven Central
-        shell: bash
-        run: |
-          mkdir -p ~/.gradle/init.d
-          cat > ~/.gradle/init.d/cripto-espejo.gradle <<'EOF'
-          def espejo = 'https://maven-central.storage-download.googleapis.com/maven2/'
-          settingsEvaluated { settings ->
-              settings.pluginManagement.repositories { maven { url espejo } }
-          }
-          allprojects {
-              buildscript { repositories { maven { url espejo } } }
-              repositories { maven { url espejo } }
-          }
-          EOF
-          echo "[CRIPTO] Espejo de Maven Central configurado"
-
       - name: Compilar APK
         shell: bash
         env:
@@ -208,7 +196,9 @@ jobs:
           cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ matrix.job.libcpp }}/libc++_shared.so "$JNI/"
           cp ./target/${{ matrix.job.target }}/release/liblibrustdesk.so "$JNI/librustdesk.so"
           pushd flutter
-          # v1.1 — Hasta 4 intentos con espera creciente (1, 2 y 3 minutos) ante cortes de red.
+          # v1.1 — Hasta 4 intentos con espera creciente ante cortes de red.
+          # v1.2 — Esperas de 90 s, 3 min y 5 min.
+          ESPERAS=(0 90 180 300)
           COMPILADO=0
           for INTENTO in 1 2 3 4; do
             echo "[CRIPTO] Compilación de la APK, intento $INTENTO de 4"
@@ -217,7 +207,7 @@ jobs:
               break
             fi
             if [[ $INTENTO -lt 4 ]]; then
-              ESPERA=$((INTENTO * 60))
+              ESPERA=${ESPERAS[$INTENTO]}
               echo "::warning::Intento $INTENTO falló (posible corte de red). Nuevo intento en $ESPERA segundos."
               sleep $ESPERA
             fi
