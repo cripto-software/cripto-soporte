@@ -14,6 +14,10 @@
 # Historial
 #   v1.0  23/11/2026  Versión inicial (basada en el trabajo Android
 #                     de flutter-build.yml de RustDesk 1.5.3).
+#   v1.1  24/11/2026  Blindaje contra cortes de red (error 429 de
+#                     Maven Central): espejo de Google para Maven
+#                     Central, caché de Gradle y hasta 4 intentos de
+#                     compilación con espera creciente.
 # Mantenimiento: tras cada «Sync fork», si la compilación falla,
 # copiar aquí las versiones del bloque env de flutter-build.yml.
 # ============================================================
@@ -161,6 +165,34 @@ jobs:
           cargo install cargo-ndk --version ${{ env.CARGO_NDK_VERSION }} --locked
           ./flutter/${{ matrix.job.ndk_script }}
 
+      # v1.1 — Caché de librerías de Android: se descargan una vez y se reutilizan.
+      - name: Caché de Gradle
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: cripto-gradle-${{ runner.os }}-${{ hashFiles('flutter/android/**/*.gradle', 'flutter/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            cripto-gradle-${{ runner.os }}-
+
+      # v1.1 — Espejo oficial de Google para Maven Central (evita el error 429).
+      - name: Espejo de Maven Central
+        shell: bash
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/cripto-espejo.gradle <<'EOF'
+          def espejo = 'https://maven-central.storage-download.googleapis.com/maven2/'
+          settingsEvaluated { settings ->
+              settings.pluginManagement.repositories { maven { url espejo } }
+          }
+          allprojects {
+              buildscript { repositories { maven { url espejo } } }
+              repositories { maven { url espejo } }
+          }
+          EOF
+          echo "[CRIPTO] Espejo de Maven Central configurado"
+
       - name: Compilar APK
         shell: bash
         env:
@@ -176,7 +208,24 @@ jobs:
           cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ matrix.job.libcpp }}/libc++_shared.so "$JNI/"
           cp ./target/${{ matrix.job.target }}/release/liblibrustdesk.so "$JNI/librustdesk.so"
           pushd flutter
-          flutter build apk --release --target-platform ${{ matrix.job.platform }} --split-per-abi
+          # v1.1 — Hasta 4 intentos con espera creciente (1, 2 y 3 minutos) ante cortes de red.
+          COMPILADO=0
+          for INTENTO in 1 2 3 4; do
+            echo "[CRIPTO] Compilación de la APK, intento $INTENTO de 4"
+            if flutter build apk --release --target-platform ${{ matrix.job.platform }} --split-per-abi; then
+              COMPILADO=1
+              break
+            fi
+            if [[ $INTENTO -lt 4 ]]; then
+              ESPERA=$((INTENTO * 60))
+              echo "::warning::Intento $INTENTO falló (posible corte de red). Nuevo intento en $ESPERA segundos."
+              sleep $ESPERA
+            fi
+          done
+          if [[ $COMPILADO -ne 1 ]]; then
+            echo "::error::La APK no se pudo compilar tras 4 intentos. Revisar el registro de este paso."
+            exit 1
+          fi
           popd
           mkdir -p salida
           mv flutter/build/app/outputs/flutter-apk/app-${{ matrix.job.abi }}-release.apk \
