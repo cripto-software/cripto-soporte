@@ -15,6 +15,11 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  24/11/2026  Versión inicial.
+//   v1.1  24/11/2026  Revisión legal (art. 12 LOPDP): servidor en EE. UU.
+//                     (transferencia internacional autorizada de forma
+//                     expresa), qué pasa si no acepta, sin decisiones
+//                     automatizadas, contacto de protección de datos y
+//                     plazo de respuesta de 15 días.
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -35,6 +40,10 @@ const String kCriptoCorreo = 'soporte@pc-green.com';
 const String kCriptoTelefono = '098 566 6807';
 const String kCriptoUrlPrivacidad = 'https://pc-green.com/privacidad';
 const int kCriptoDiasGrabacion = 90;
+// v1.1 · Transferencia internacional y contacto de protección de datos
+const String kCriptoServidorProveedor = 'Contabo Inc.';
+const String kCriptoServidorPais = 'Estados Unidos';
+const String kCriptoCorreoDatos = 'soporte@pc-green.com';
 
 // ---------- Colores y textos (máximo 3 tamaños) ----------
 const Color kCriptoAzul = Color(0xFF0B1029);
@@ -237,6 +246,17 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                             'pides, y para capacitarte.',
                       ),
                       _seccion(
+                        Icons.public,
+                        'Servidor en otro país',
+                        'El servidor que conecta tu celular con el técnico está '
+                            'contratado con $kCriptoServidorProveedor y se '
+                            'encuentra en $kCriptoServidorPais. Ahí solo pasan '
+                            'los datos de conexión (ID, IP, fecha y hora); la '
+                            'imagen de tu pantalla viaja cifrada y no se guarda '
+                            'en el servidor. Al aceptar, autorizas esta '
+                            'transferencia internacional.',
+                      ),
+                      _seccion(
                         Icons.videocam,
                         'Grabación de la sesión (opcional)',
                         'Antes de cada sesión el técnico te preguntará si '
@@ -254,12 +274,23 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                             'códigos que te lleguen por mensaje ni dinero.',
                       ),
                       _seccion(
+                        Icons.person_off,
+                        'Si no aceptas',
+                        'Aceptar es voluntario. Si no aceptas, no podrás usar '
+                            'la app ni recibir soporte remoto, pero puedes '
+                            'recibir ayuda por teléfono, correo o de forma '
+                            'presencial. No tomamos decisiones automáticas ni '
+                            'hacemos perfiles con tus datos: siempre te atiende '
+                            'una persona.',
+                      ),
+                      _seccion(
                         Icons.gavel,
                         'Tus derechos',
                         'Puedes pedir acceso, rectificación y actualización, '
                             'eliminación, oposición, portabilidad y suspensión '
                             'del tratamiento de tus datos escribiendo a '
-                            '$kCriptoCorreo o llamando al $kCriptoTelefono. '
+                            '$kCriptoCorreoDatos o llamando al $kCriptoTelefono. '
+                            'Es gratis y te respondemos en máximo 15 días. '
                             'También puedes acudir a la Superintendencia de '
                             'Protección de Datos Personales.',
                       ),
@@ -318,9 +349,11 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                               child: Padding(
                                 padding: EdgeInsets.only(top: 12),
                                 child: Text(
-                                  'He leído y acepto que PCG S.A.S. trate mis '
+                                  'He leído este aviso y la política de '
+                                  'privacidad, y acepto que PCG S.A.S. trate mis '
                                   'datos personales para darme soporte técnico, '
-                                  'en los términos indicados.',
+                                  'incluida su transferencia al servidor en '
+                                  '$kCriptoServidorPais.',
                                   style: _pequeno,
                                 ),
                               ),
