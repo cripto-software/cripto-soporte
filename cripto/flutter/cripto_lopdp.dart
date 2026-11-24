@@ -20,6 +20,9 @@
 //                     expresa), qué pasa si no acepta, sin decisiones
 //                     automatizadas, contacto de protección de datos y
 //                     plazo de respuesta de 15 días.
+//   v1.2  24/11/2026  Acompañantes (solo miran) y aceptación obligatoria
+//                     de cada conexión con un toque. El teléfono ya no se
+//                     corta en dos líneas.
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -246,6 +249,15 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                             'pides, y para capacitarte.',
                       ),
                       _seccion(
+                        Icons.group_outlined,
+                        'Acompañantes',
+                        'Tú aceptas cada conexión con un toque. Si quieres, '
+                            'puedes dejar entrar a un acompañante (por ejemplo '
+                            'tu hijo o el dueño de tu empresa): solo puede '
+                            'mirar, nunca controla, y queda registrado quién '
+                            'entró y cuándo.',
+                      ),
+                      _seccion(
                         Icons.public,
                         'Servidor en otro país',
                         'El servidor que conecta tu celular con el técnico está '
@@ -289,7 +301,7 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                         'Puedes pedir acceso, rectificación y actualización, '
                             'eliminación, oposición, portabilidad y suspensión '
                             'del tratamiento de tus datos escribiendo a '
-                            '$kCriptoCorreoDatos o llamando al $kCriptoTelefono. '
+                            '$kCriptoCorreoDatos o llamando al ${kCriptoTelefono.replaceAll(' ', '\u00A0')}. '
                             'Es gratis y te respondemos en máximo 15 días. '
                             'También puedes acudir a la Superintendencia de '
                             'Protección de Datos Personales.',

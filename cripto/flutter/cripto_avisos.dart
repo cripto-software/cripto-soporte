@@ -17,6 +17,12 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  24/11/2026  Versión inicial.
+//   v1.1  24/11/2026  (v1.2 de la app) El teléfono ya no se corta en dos
+//                     líneas; botones del aviso de Accesibilidad a lo ancho
+//                     y alineados; criptoPrepararCarpetas reemplaza las dos
+//                     preguntas de carpetas de RustDesk (registros y
+//                     archivos) por la carpeta propia de la app, sin
+//                     preguntar.
 // ============================================================
 
 import 'dart:async';
@@ -29,6 +35,7 @@ import '../models/model.dart';
 import '../models/platform_model.dart';
 import '../models/server_model.dart';
 import 'cripto_lopdp.dart';
+import '../utils/android_documents.dart';
 
 const TextStyle _titulo =
     TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kCriptoTexto);
@@ -209,8 +216,8 @@ class _CriptoAvisoSeguridadState extends State<CriptoAvisoSeguridad> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Soporte oficial: $kCriptoCorreo · $kCriptoTelefono',
+            Text(
+              'Soporte oficial: $kCriptoCorreo · ${kCriptoTelefono.replaceAll(' ', '\u00A0')}',
               style: _pequeno,
             ),
             const SizedBox(height: 4),
@@ -300,14 +307,37 @@ void criptoAvisoAccesibilidad(FFI ffi) {
             'y actívalo.',
             style: _cuerpoNegrita,
           ),
+          const SizedBox(height: 16),
+          SizedBox(
+              width: double.infinity,
+              child: _botonPrincipal('Aceptar y abrir Ajustes', aceptar)),
+          const SizedBox(height: 8),
+          SizedBox(
+              width: double.infinity,
+              child: _botonSecundario('Cancelar', cancelar)),
         ],
       ),
-      actions: [
-        _botonSecundario('Cancelar', cancelar),
-        _botonPrincipal('Aceptar y abrir Ajustes', aceptar),
-      ],
       onSubmit: aceptar,
       onCancel: cancelar,
     );
   });
+}
+
+// ============================================================
+// 3) Carpetas sin preguntas (v1.2 de la app)
+//    RustDesk preguntaba dónde guardar sus registros y qué carpeta
+//    podía ver el técnico. CRIPTO usa siempre la carpeta propia de la
+//    app: el técnico nunca ve fotos, documentos ni descargas.
+// ============================================================
+const String _claveCarpetas = 'android-file-transfer-folder-setup';
+
+Future<void> criptoPrepararCarpetas(FFI ffi) async {
+  if (bind.getLocalFlutterOption(k: _claveCarpetas) == 'Y') return;
+  try {
+    await AndroidDocuments.workspace(share: true);
+    await bind.setLocalFlutterOption(k: _claveCarpetas, v: 'Y');
+    debugPrint('[CRIPTO] Carpeta de archivos: solo la carpeta de la app');
+  } catch (e) {
+    debugPrint('[CRIPTO] No se pudo preparar la carpeta de la app: $e');
+  }
 }

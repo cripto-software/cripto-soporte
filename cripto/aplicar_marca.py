@@ -8,6 +8,9 @@
 #             Además inserta las pantallas propias de CRIPTO
 #             (consentimiento LOPDP, aviso de seguridad y aviso de
 #             Accesibilidad) que están en cripto/flutter/.
+#             v1.2: pantalla «Pedir ayuda», aceptación de cada conexión
+#             con roles Técnico/Acompañante, acompañantes con PIN y
+#             registro de sesiones, logo oficial dentro de la app.
 #             Si algo no coincide, detiene la compilación con un
 #             mensaje claro. Nunca imprime el servidor ni la llave.
 # 👤 AUTOR   : Téc. Sup. Pablo Quichimbo — PCG SAS
@@ -21,6 +24,15 @@
 #                     app, aviso de seguridad propio en lugar del aviso de
 #                     estafas de RustDesk y divulgación destacada del
 #                     permiso de Accesibilidad (requisito de Google Play).
+#   v1.2  24/11/2026  App v1.2: inicio «Pedir ayuda» (cripto_inicio.dart),
+#                     ventana de solicitud con roles Técnico/Acompañante
+#                     (cripto_solicitud.dart), acompañantes Personal/Empresa
+#                     con PIN y registro (cripto_acompanantes.dart), piezas
+#                     comunes y logo (cripto_comun.dart). Se copia el logo a
+#                     flutter/assets/cripto_logo.png. Se quitan las preguntas
+#                     de carpetas y el aviso de inicio de RustDesk (el aviso
+#                     CRIPTO va antes) y la descripción de Accesibilidad
+#                     queda en español.
 # ============================================================
 
 import os
@@ -178,7 +190,14 @@ def aplicar_flutter() -> None:
     origen = RAIZ / "cripto" / "flutter"
     lib = RAIZ / "flutter" / "lib"
     destino = lib / "cripto"
-    archivos = ("cripto_lopdp.dart", "cripto_avisos.dart")
+    archivos = (
+        "cripto_lopdp.dart",
+        "cripto_avisos.dart",
+        "cripto_comun.dart",  # v1.2
+        "cripto_acompanantes.dart",  # v1.2
+        "cripto_solicitud.dart",  # v1.2
+        "cripto_inicio.dart",  # v1.2
+    )
     destino.mkdir(parents=True, exist_ok=True)
     for nombre in archivos:
         archivo = origen / nombre
@@ -191,14 +210,15 @@ def aplicar_flutter() -> None:
     reemplazar_una_vez(
         main_dart,
         r"(?m)^import 'mobile/pages/home_page\.dart';$",
-        "import 'mobile/pages/home_page.dart';\nimport 'cripto/cripto_lopdp.dart';",
+        "import 'mobile/pages/home_page.dart';\nimport 'cripto/cripto_lopdp.dart';\n"
+        "import 'cripto/cripto_inicio.dart';",
         "Importación del consentimiento LOPDP",
     )
     reemplazar_una_vez(
         main_dart,
         r": HomePage\(\),",
-        ": CriptoPuertaLopdp(child: HomePage()),",
-        "Consentimiento LOPDP antes de la pantalla principal",
+        ": const CriptoPuertaLopdp(child: CriptoInicioPage()),",
+        "Consentimiento LOPDP y pantalla «Pedir ayuda» como inicio",
     )
 
     servidor = lib / "mobile" / "pages" / "server_page.dart"
@@ -219,7 +239,8 @@ def aplicar_flutter() -> None:
     reemplazar_una_vez(
         modelo,
         r"(?m)^import 'model\.dart';$",
-        "import 'model.dart';\nimport '../cripto/cripto_avisos.dart';",
+        "import 'model.dart';\nimport '../cripto/cripto_avisos.dart';\n"
+        "import '../cripto/cripto_solicitud.dart';",
         "Importación de los avisos CRIPTO (modelo del servidor)",
     )
     reemplazar_una_vez(
@@ -229,6 +250,56 @@ def aplicar_flutter() -> None:
         "showInputWarnAlertRustDesk(FFI ffi) {",
         "Divulgación destacada del permiso de Accesibilidad",
     )
+    # v1.2 — Solicitud de conexión CRIPTO (roles Técnico / Acompañante).
+    reemplazar_una_vez(
+        modelo,
+        r"(?m)^  void showLoginDialog\(Client client\) \{",
+        "  void showLoginDialog(Client client) => criptoSolicitudConexion(this, client);\n\n"
+        "  void showLoginDialogRustDesk(Client client) {",
+        "Ventana de solicitud CRIPTO con roles",
+    )
+    # v1.2 — Sin preguntas de carpetas: siempre la carpeta propia de la app.
+    reemplazar_una_vez(
+        modelo,
+        r"await AndroidDocuments\.requireLogFolder\(\);\s*await showAndroidFileTransferSetup\(gFFI\);",
+        "await criptoPrepararCarpetas(gFFI);",
+        "Carpeta propia de la app sin preguntar",
+    )
+    # v1.2 — Sin el aviso de inicio de RustDesk: el aviso CRIPTO va antes.
+    reemplazar_una_vez(
+        modelo,
+        r"(await checkFloatingWindowPermission\(\);\s*\}\n)",
+        "await checkFloatingWindowPermission();\n      }\n"
+        "      // CRIPTO: el aviso propio ya se mostró antes de iniciar.\n"
+        "      startService();\n      return;\n",
+        "Inicio del servicio sin el aviso de RustDesk",
+    )
+
+    # v1.2 — Descripción del permiso de Accesibilidad en español.
+    textos = RAIZ / "flutter" / "android" / "app" / "src" / "main" / "res" / "values" / "strings.xml"
+    reemplazar_una_vez(
+        textos,
+        r'<string name="accessibility_service_description">[^<]*</string>',
+        '<string name="accessibility_service_description">Permite que el técnico de '
+        'CRIPTO Software toque y escriba en tu pantalla solo durante una sesión de '
+        'soporte que tú aceptaste. No lee mensajes ni contraseñas.</string>',
+        "Descripción de Accesibilidad en español",
+    )
+
+    # v1.2 — Logo oficial dentro de la app (la marca es la publicidad).
+    try:
+        from PIL import Image
+    except ImportError:
+        error("Falta la librería Pillow (pip install pillow).")
+    origen_logo = RAIZ / "cripto" / "marca" / "icono_1024.png"
+    if not origen_logo.exists():
+        error(f"Falta el archivo de marca {origen_logo.relative_to(RAIZ)}.")
+    logo = Image.open(origen_logo).convert("RGBA")
+    lado = logo.size[0]
+    margen = int(lado * 0.256)
+    logo.crop((margen, margen, lado - margen, lado - margen)).resize(
+        (512, 512), Image.LANCZOS).save(RAIZ / "flutter" / "assets" / "cripto_logo.png", optimize=True)
+    ok("Logo CRIPTO copiado a flutter/assets/cripto_logo.png")
 
 
 def main() -> None:
