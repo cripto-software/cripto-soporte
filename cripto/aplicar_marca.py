@@ -5,6 +5,9 @@
 #             compilar la app de Android: servidor y llave pública
 #             (leídos de los Secrets de GitHub), nombre de la app,
 #             identificador com.criptosoftware.soporte e íconos.
+#             Además inserta las pantallas propias de CRIPTO
+#             (consentimiento LOPDP, aviso de seguridad y aviso de
+#             Accesibilidad) que están en cripto/flutter/.
 #             Si algo no coincide, detiene la compilación con un
 #             mensaje claro. Nunca imprime el servidor ni la llave.
 # 👤 AUTOR   : Téc. Sup. Pablo Quichimbo — PCG SAS
@@ -14,10 +17,15 @@
 # ------------------------------------------------------------
 # Historial
 #   v1.0  23/11/2026  Versión inicial.
+#   v1.1  24/11/2026  Pantallas CRIPTO: consentimiento LOPDP al abrir la
+#                     app, aviso de seguridad propio en lugar del aviso de
+#                     estafas de RustDesk y divulgación destacada del
+#                     permiso de Accesibilidad (requisito de Google Play).
 # ============================================================
 
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -165,12 +173,71 @@ def aplicar_iconos() -> None:
     ok("Íconos CRIPTO generados en las 5 densidades de Android")
 
 
+def aplicar_flutter() -> None:
+    """Copia las pantallas de cripto/flutter/ y las conecta con la app."""
+    origen = RAIZ / "cripto" / "flutter"
+    lib = RAIZ / "flutter" / "lib"
+    destino = lib / "cripto"
+    archivos = ("cripto_lopdp.dart", "cripto_avisos.dart")
+    destino.mkdir(parents=True, exist_ok=True)
+    for nombre in archivos:
+        archivo = origen / nombre
+        if not archivo.exists():
+            error(f"Falta el archivo {archivo.relative_to(RAIZ)}.")
+        shutil.copyfile(archivo, destino / nombre)
+    ok("Pantallas CRIPTO copiadas a flutter/lib/cripto/")
+
+    main_dart = lib / "main.dart"
+    reemplazar_una_vez(
+        main_dart,
+        r"(?m)^import 'mobile/pages/home_page\.dart';$",
+        "import 'mobile/pages/home_page.dart';\nimport 'cripto/cripto_lopdp.dart';",
+        "Importación del consentimiento LOPDP",
+    )
+    reemplazar_una_vez(
+        main_dart,
+        r": HomePage\(\),",
+        ": CriptoPuertaLopdp(child: HomePage()),",
+        "Consentimiento LOPDP antes de la pantalla principal",
+    )
+
+    servidor = lib / "mobile" / "pages" / "server_page.dart"
+    reemplazar_una_vez(
+        servidor,
+        r"(?m)^import 'home_page\.dart';$",
+        "import 'home_page.dart';\nimport '../../cripto/cripto_avisos.dart';",
+        "Importación de los avisos CRIPTO (pantalla compartir)",
+    )
+    reemplazar_una_vez(
+        servidor,
+        r"return ScamWarningDialog\(serverModel: serverModel\);",
+        "return CriptoAvisoSeguridad(serverModel: serverModel);",
+        "Aviso de seguridad CRIPTO en lugar del aviso de estafas",
+    )
+
+    modelo = lib / "models" / "server_model.dart"
+    reemplazar_una_vez(
+        modelo,
+        r"(?m)^import 'model\.dart';$",
+        "import 'model.dart';\nimport '../cripto/cripto_avisos.dart';",
+        "Importación de los avisos CRIPTO (modelo del servidor)",
+    )
+    reemplazar_una_vez(
+        modelo,
+        r"(?m)^showInputWarnAlert\(FFI ffi\) \{",
+        "showInputWarnAlert(FFI ffi) => criptoAvisoAccesibilidad(ffi);\n\n"
+        "showInputWarnAlertRustDesk(FFI ffi) {",
+        "Divulgación destacada del permiso de Accesibilidad",
+    )
+
+
 def main() -> None:
     print("[CRIPTO] Aplicando marca CRIPTO Soporte…")
     servidor, llave = leer_secretos()
     aplicar_servidor(servidor, llave)
     aplicar_android()
     aplicar_iconos()
+    aplicar_flutter()
     print("[CRIPTO] Marca aplicada correctamente.")
 
 
