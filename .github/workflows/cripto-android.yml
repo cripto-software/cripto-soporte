@@ -7,6 +7,8 @@
 #             la marca. Solo se ejecuta a mano (botón «Run workflow»).
 #             Firma la APK con la llave CRIPTO si existen los secrets
 #             de firma; si no, la deja con firma de prueba.
+#             v1.3: además genera el paquete .aab para Google Play,
+#             firmado con la llave de subida (upload key).
 # 👤 AUTOR   : Téc. Sup. Pablo Quichimbo — PCG SAS
 # ©  Propiedad intelectual de Pablo Quichimbo. Todos los derechos reservados.
 #    (Trabajo derivado de RustDesk, licencia AGPL-3.0.)
@@ -23,6 +25,14 @@
 #                     settings.gradle y rechazaba el agregado. Se mantienen
 #                     la caché de Gradle y los reintentos; esperas más
 #                     largas (90 s, 3 min y 5 min).
+#   v1.3  24/11/2026  Paquete para Google Play (.aab, arm64 + armv7) en un
+#                     trabajo nuevo que reutiliza las librerías ya compiladas,
+#                     firmado con la llave de subida mediante key.properties
+#                     temporal (se borra al terminar). Código de versión
+#                     automático y creciente (1000 + número de ejecución,
+#                     calculado en cada trabajo),
+#                     igual en APK y AAB, como exige Google Play. Muestra la
+#                     huella SHA-256 del certificado en el resumen.
 # Mantenimiento: tras cada «Sync fork», si la compilación falla,
 # copiar aquí las versiones del bloque env de flutter-build.yml.
 # ============================================================
@@ -68,6 +78,13 @@ jobs:
           - { arch: arm64, target: aarch64-linux-android, abi: arm64-v8a, platform: android-arm64, ndk_script: ndk_arm64.sh, libcpp: aarch64-linux-android }
           - { arch: armv7, target: armv7-linux-androideabi, abi: armeabi-v7a, platform: android-arm, ndk_script: ndk_arm.sh, libcpp: arm-linux-androideabi }
     steps:
+      # v1.3 — Código de versión creciente para Google Play (nunca se repite).
+      - name: Código de versión
+        shell: bash
+        run: |
+          echo "CODIGO_VERSION=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "[CRIPTO] Código de versión: $((1000 + GITHUB_RUN_NUMBER))"
+
       - name: Liberar espacio en disco
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         with:
@@ -170,6 +187,24 @@ jobs:
           cargo install cargo-ndk --version ${{ env.CARGO_NDK_VERSION }} --locked
           ./flutter/${{ matrix.job.ndk_script }}
 
+      # v1.3 — Guarda las librerías compiladas para armar el .aab de Google Play.
+      - name: Guardar librerías para el paquete de Google Play
+        shell: bash
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          mkdir -p libs-cripto/${{ matrix.job.abi }}
+          cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ matrix.job.libcpp }}/libc++_shared.so libs-cripto/${{ matrix.job.abi }}/
+          cp ./target/${{ matrix.job.target }}/release/liblibrustdesk.so libs-cripto/${{ matrix.job.abi }}/librustdesk.so
+
+      - name: Subir librerías ${{ matrix.job.abi }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cripto-libs-${{ matrix.job.abi }}
+          path: libs-cripto/${{ matrix.job.abi }}/
+          retention-days: 1
+          if-no-files-found: error
+
       # v1.1 — Caché de librerías de Android: se descargan una vez y se reutilizan.
       - name: Caché de Gradle
         uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -202,7 +237,7 @@ jobs:
           COMPILADO=0
           for INTENTO in 1 2 3 4; do
             echo "[CRIPTO] Compilación de la APK, intento $INTENTO de 4"
-            if flutter build apk --release --target-platform ${{ matrix.job.platform }} --split-per-abi; then
+            if flutter build apk --release --target-platform ${{ matrix.job.platform }} --split-per-abi --build-number=${{ env.CODIGO_VERSION }}; then
               COMPILADO=1
               break
             fi
@@ -263,5 +298,200 @@ jobs:
         with:
           name: ${{ env.NOMBRE_APK }}-${{ env.VERSION }}-${{ matrix.job.arch }}
           path: entrega/
+          retention-days: 30
+          if-no-files-found: error
+
+  # ============================================================
+  # v1.3 — Paquete para Google Play (.aab con arm64 y armv7)
+  # ============================================================
+  build-aab:
+    needs: [generate-bridge, build-android]
+    name: Google Play (AAB)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      # v1.3 — Código de versión creciente para Google Play (nunca se repite).
+      - name: Código de versión
+        shell: bash
+        run: |
+          echo "CODIGO_VERSION=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "[CRIPTO] Código de versión: $((1000 + GITHUB_RUN_NUMBER))"
+
+      - name: Liberar espacio en disco
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
+
+      - name: Revisar que existan los secrets de firma
+        shell: bash
+        run: |
+          if [[ -z "$ANDROID_SIGNING_KEY" ]]; then
+            echo "::error::Google Play exige el paquete firmado con la llave de subida. Faltan los secrets de firma."
+            exit 1
+          fi
+
+      - name: Instalar dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk-headless python3-pil
+
+      - name: Descargar código
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Aplicar marca CRIPTO (servidor, llave, nombre, íconos)
+        env:
+          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+        run: python3 cripto/aplicar_marca.py
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.ANDROID_FLUTTER_VERSION }}
+
+      - name: Parche de Flutter
+        run: |
+          cd $(dirname $(dirname $(which flutter)))
+          if [[ "3.24.5" == "${{ env.ANDROID_FLUTTER_VERSION }}" ]]; then
+            git apply ${{ github.workspace }}/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff
+          fi
+
+      - name: Instalar NDK
+        uses: nttld/setup-ndk@ed92fe6cadad69be94a966a7ee3271275e62f779 # v1
+        id: setup-ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+
+      # Gradle consulta «cargo metadata» al compilar, por eso se instala Rust.
+      - name: Instalar Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Restaurar archivos del puente
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bridge-artifact
+          path: ./
+
+      - name: Restaurar librerías arm64
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cripto-libs-arm64-v8a
+          path: ./flutter/android/app/src/main/jniLibs/arm64-v8a
+
+      - name: Restaurar librerías armv7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cripto-libs-armeabi-v7a
+          path: ./flutter/android/app/src/main/jniLibs/armeabi-v7a
+
+      - name: Caché de Gradle
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: cripto-gradle-${{ runner.os }}-${{ hashFiles('flutter/android/**/*.gradle', 'flutter/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            cripto-gradle-${{ runner.os }}-
+
+      # La llave y las contraseñas solo existen durante este trabajo y nunca se imprimen.
+      - name: Preparar llave de subida (temporal)
+        shell: bash
+        env:
+          LLAVE_B64: ${{ secrets.ANDROID_SIGNING_KEY }}
+          LLAVE_ALIAS: ${{ secrets.ANDROID_ALIAS }}
+          LLAVE_CLAVE_ALMACEN: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+          LLAVE_CLAVE: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          LLAVE="$RUNNER_TEMP/cripto-upload.jks"
+          printf '%s' "$LLAVE_B64" | base64 -d > "$LLAVE"
+          {
+            printf 'storeFile=%s\n' "$LLAVE"
+            printf 'storePassword=%s\n' "$LLAVE_CLAVE_ALMACEN"
+            printf 'keyAlias=%s\n' "$LLAVE_ALIAS"
+            printf 'keyPassword=%s\n' "$LLAVE_CLAVE"
+          } > flutter/android/key.properties
+          chmod 600 "$LLAVE" flutter/android/key.properties
+          echo "[CRIPTO] Llave de subida preparada"
+
+      - name: Compilar paquete para Google Play
+        shell: bash
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          export PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH
+          sed -i "s/org.gradle.jvmargs=-Xmx1024M/org.gradle.jvmargs=-Xmx2g/g" ./flutter/android/gradle.properties
+          ls -la flutter/android/app/src/main/jniLibs/*/
+          pushd flutter
+          ESPERAS=(0 90 180 300)
+          COMPILADO=0
+          for INTENTO in 1 2 3 4; do
+            echo "[CRIPTO] Compilación del paquete .aab, intento $INTENTO de 4"
+            if flutter build appbundle --release --target-platform android-arm,android-arm64 --build-number=${{ env.CODIGO_VERSION }}; then
+              COMPILADO=1
+              break
+            fi
+            if [[ $INTENTO -lt 4 ]]; then
+              ESPERA=${ESPERAS[$INTENTO]}
+              echo "::warning::Intento $INTENTO falló (posible corte de red). Nuevo intento en $ESPERA segundos."
+              sleep $ESPERA
+            fi
+          done
+          if [[ $COMPILADO -ne 1 ]]; then
+            echo "::error::El paquete .aab no se pudo compilar tras 4 intentos. Revisar el registro de este paso."
+            exit 1
+          fi
+          popd
+          mkdir -p entrega-play
+          mv flutter/build/app/outputs/bundle/release/app-release.aab \
+             entrega-play/${{ env.NOMBRE_APK }}-${{ env.VERSION }}-${{ env.CODIGO_VERSION }}.aab
+
+      - name: Verificar firma y preparar entrega
+        shell: bash
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+        run: |
+          export PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH
+          AAB=entrega-play/${{ env.NOMBRE_APK }}-${{ env.VERSION }}-${{ env.CODIGO_VERSION }}.aab
+          if ! jarsigner -verify "$AAB" | grep -q "jar verified"; then
+            echo "::error::El paquete .aab no quedó firmado con la llave de subida."
+            exit 1
+          fi
+          HUELLA=$(keytool -printcert -jarfile "$AAB" | grep -m1 "SHA256:" | sed 's/.*SHA256: //')
+          (cd entrega-play && sha256sum *.aab > $(basename "$AAB").sha256)
+          {
+            echo "### ✅ Paquete para Google Play firmado con la llave de subida"
+            echo "- Versión: ${{ env.VERSION }} · Código de versión: ${{ env.CODIGO_VERSION }}"
+            echo "- Huella SHA-256 del certificado de subida: \`$HUELLA\`"
+            echo '```'
+            cat entrega-play/*.sha256
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Borrar llave temporal
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/cripto-upload.jks" flutter/android/key.properties
+          echo "[CRIPTO] Llave temporal borrada"
+
+      - name: Subir paquete para Google Play
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.NOMBRE_APK }}-${{ env.VERSION }}-google-play
+          path: entrega-play/
           retention-days: 30
           if-no-files-found: error
