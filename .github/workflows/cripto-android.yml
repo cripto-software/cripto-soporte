@@ -1,0 +1,228 @@
+# ============================================================
+# 📁 RUTA   : .github/workflows/cripto-android.yml
+# 📌 ARCHIVO: cripto-android.yml
+# 📝 RESUMEN: Compila la APK de Android de CRIPTO Soporte con el
+#             servidor y la llave pública propios (Secrets), nombre,
+#             identificador com.criptosoftware.soporte e íconos de
+#             la marca. Solo se ejecuta a mano (botón «Run workflow»).
+#             Firma la APK con la llave CRIPTO si existen los secrets
+#             de firma; si no, la deja con firma de prueba.
+# 👤 AUTOR   : Téc. Sup. Pablo Quichimbo — PCG SAS
+# ©  Propiedad intelectual de Pablo Quichimbo. Todos los derechos reservados.
+#    (Trabajo derivado de RustDesk, licencia AGPL-3.0.)
+# ------------------------------------------------------------
+# Historial
+#   v1.0  23/11/2026  Versión inicial (basada en el trabajo Android
+#                     de flutter-build.yml de RustDesk 1.5.3).
+# Mantenimiento: tras cada «Sync fork», si la compilación falla,
+# copiar aquí las versiones del bloque env de flutter-build.yml.
+# ============================================================
+
+name: CRIPTO Soporte - Android
+
+on:
+  workflow_dispatch:
+
+# Mínimo privilegio: solo lectura del código.
+permissions:
+  contents: read
+
+# Evita dos compilaciones a la vez que se pisen.
+concurrency:
+  group: cripto-android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_VERSION: "1.75"
+  CARGO_NDK_VERSION: "3.1.2"
+  ANDROID_FLUTTER_VERSION: "3.24.5"
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+  NDK_VERSION: "r28c"
+  VERSION: "1.5.3"
+  NOMBRE_APK: "cripto-soporte"
+  ANDROID_SIGNING_KEY: "${{ secrets.ANDROID_SIGNING_KEY }}"
+
+jobs:
+  generate-bridge:
+    uses: ./.github/workflows/bridge.yml
+
+  build-android:
+    needs: [generate-bridge]
+    name: APK ${{ matrix.job.arch }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - { arch: arm64, target: aarch64-linux-android, abi: arm64-v8a, platform: android-arm64, ndk_script: ndk_arm64.sh, libcpp: aarch64-linux-android }
+          - { arch: armv7, target: armv7-linux-androideabi, abi: armeabi-v7a, platform: android-arm, ndk_script: ndk_arm.sh, libcpp: arm-linux-androideabi }
+    steps:
+      - name: Liberar espacio en disco
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
+
+      - name: Exportar variables de caché
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Instalar dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake curl gcc-multilib git g++ g++-multilib \
+            libayatana-appindicator3-dev libasound2-dev libc6-dev libclang-dev libunwind-dev \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgtk-3-dev libpulse-dev \
+            libva-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxdo-dev \
+            libxfixes-dev llvm-dev nasm ninja-build openjdk-17-jdk-headless pkg-config \
+            python3-pil tree wget
+
+      - name: Descargar código
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Aplicar marca CRIPTO (servidor, llave, nombre, íconos)
+        env:
+          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+        run: python3 cripto/aplicar_marca.py
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.ANDROID_FLUTTER_VERSION }}
+
+      - name: Parche de Flutter
+        run: |
+          cd $(dirname $(dirname $(which flutter)))
+          if [[ "3.24.5" == "${{ env.ANDROID_FLUTTER_VERSION }}" ]]; then
+            git apply ${{ github.workspace }}/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff
+          fi
+
+      - name: Instalar NDK
+        uses: nttld/setup-ndk@ed92fe6cadad69be94a966a7ee3271275e62f779 # v1
+        id: setup-ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+
+      - name: Preparar vcpkg
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        with:
+          vcpkgDirectory: /opt/artifacts/vcpkg
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Instalar dependencias de vcpkg
+        shell: bash
+        run: |
+          if ! ./flutter/build_android_deps.sh "${{ matrix.job.abi }}"; then
+            find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
+              echo "$_1:"; echo "======"; cat "$_1"; echo "======"; echo ""
+            done
+            exit 1
+          fi
+
+      - name: Restaurar archivos del puente
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bridge-artifact
+          path: ./
+
+      - name: Instalar Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: "rustfmt"
+
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          prefix-key: cripto-android
+          key: ${{ matrix.job.target }}
+
+      - name: Compilar librería
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          rustup target add ${{ matrix.job.target }}
+          cargo install cargo-ndk --version ${{ env.CARGO_NDK_VERSION }} --locked
+          ./flutter/${{ matrix.job.ndk_script }}
+
+      - name: Compilar APK
+        shell: bash
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          export PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH
+          sed -i "s/org.gradle.jvmargs=-Xmx1024M/org.gradle.jvmargs=-Xmx2g/g" ./flutter/android/gradle.properties
+          # Se compila con firma de prueba; la firma CRIPTO se aplica en el paso siguiente.
+          sed -i "s/signingConfigs.release/signingConfigs.debug/g" ./flutter/android/app/build.gradle
+          JNI=./flutter/android/app/src/main/jniLibs/${{ matrix.job.abi }}
+          mkdir -p "$JNI"
+          cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ matrix.job.libcpp }}/libc++_shared.so "$JNI/"
+          cp ./target/${{ matrix.job.target }}/release/liblibrustdesk.so "$JNI/librustdesk.so"
+          pushd flutter
+          flutter build apk --release --target-platform ${{ matrix.job.platform }} --split-per-abi
+          popd
+          mkdir -p salida
+          mv flutter/build/app/outputs/flutter-apk/app-${{ matrix.job.abi }}-release.apk \
+             salida/${{ env.NOMBRE_APK }}-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
+
+      - name: Versión de herramientas de firma
+        shell: bash
+        run: |
+          BUILD_TOOL_VERSION=$(ls /usr/local/lib/android/sdk/build-tools/ | tail -n 1)
+          echo "ANDROID_SIGN_TOOL_VERSION=$BUILD_TOOL_VERSION" >> $GITHUB_ENV
+
+      - name: Firmar APK con la llave CRIPTO
+        if: env.ANDROID_SIGNING_KEY != ''
+        id: firma
+        uses: r0adkll/sign-android-release@349ebdef58775b1e0d8099458af0816dc79b6407 # v1
+        with:
+          releaseDirectory: ./salida
+          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+          alias: ${{ secrets.ANDROID_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: ${{ env.ANDROID_SIGN_TOOL_VERSION }}
+
+      - name: Preparar entrega (nombre final y huella SHA-256)
+        shell: bash
+        run: |
+          mkdir -p entrega
+          FINAL=entrega/${{ env.NOMBRE_APK }}-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
+          if [[ -n "${{ steps.firma.outputs.signedReleaseFile }}" ]]; then
+            cp "${{ steps.firma.outputs.signedReleaseFile }}" "$FINAL"
+            echo "### ✅ APK ${{ matrix.job.arch }} firmada con la llave CRIPTO" >> $GITHUB_STEP_SUMMARY
+          else
+            cp salida/${{ env.NOMBRE_APK }}-${{ env.VERSION }}-${{ matrix.job.arch }}.apk "$FINAL"
+            echo "::warning::APK con firma de PRUEBA: sirve para probar, pero no para Play Store ni para actualizar sobre una versión anterior. Configura los secrets de firma."
+            echo "### ⚠️ APK ${{ matrix.job.arch }} con firma de prueba" >> $GITHUB_STEP_SUMMARY
+          fi
+          (cd entrega && sha256sum *.apk > $(basename "$FINAL").sha256)
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat entrega/*.sha256 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Subir APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.NOMBRE_APK }}-${{ env.VERSION }}-${{ matrix.job.arch }}
+          path: entrega/
+          retention-days: 30
+          if-no-files-found: error
