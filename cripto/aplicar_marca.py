@@ -48,6 +48,14 @@
 #                     defecto (mejor imagen, 60 fps, color 4:4:4, imagen
 #                     ajustada a la ventana) y ajustes de servidor ocultos.
 #                     Sin argumentos sigue haciendo exactamente lo de Android.
+#   v1.5  25/11/2026  Windows: nombre interno «CRIPTO-Soporte» (con guion),
+#                     porque el instalador de Windows solo acepta letras,
+#                     números, guion y guion bajo (medida de seguridad de
+#                     RustDesk); el nombre visible sigue «CRIPTO Soporte».
+#                     Windows: la app reconoce el servidor propio fijo como
+#                     servidor privado (antes lo trataba como público, lo que
+#                     limitaba la calidad y mostraba «configure su propio
+#                     servidor»). Android no cambia.
 # ============================================================
 
 import os
@@ -60,6 +68,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 
 NOMBRE_APP = "CRIPTO Soporte"
 NOMBRE_SERVICIO = "CRIPTO Soporte Control"
+NOMBRE_INTERNO_WINDOWS = "CRIPTO-Soporte"  # v1.5 — el instalador de Windows no acepta espacios
 APP_ID_ORIGINAL = "com.carriez.flutter_hbb"
 APP_ID_CRIPTO = "com.criptosoftware.soporte"
 COLOR_FONDO_ICONO = "#0B1029"
@@ -117,7 +126,7 @@ def leer_secretos() -> tuple[str, str]:
     return servidor, llave
 
 
-def aplicar_servidor(servidor: str, llave: str) -> None:
+def aplicar_servidor(servidor: str, llave: str, nombre_interno: str = NOMBRE_APP) -> None:
     config = RAIZ / "libs" / "hbb_common" / "src" / "config.rs"
     reemplazar_una_vez(
         config,
@@ -134,8 +143,8 @@ def aplicar_servidor(servidor: str, llave: str) -> None:
     reemplazar_una_vez(
         config,
         r'APP_NAME: RwLock<String> = RwLock::new\("RustDesk"\.to_owned\(\)\);',
-        f'APP_NAME: RwLock<String> = RwLock::new("{NOMBRE_APP}".to_owned());',
-        "Nombre interno de la app",
+        f'APP_NAME: RwLock<String> = RwLock::new("{nombre_interno}".to_owned());',
+        f"Nombre interno de la app ({nombre_interno})",
     )
 
 
@@ -496,12 +505,20 @@ def aplicar_windows() -> None:
         "Ajustes de servidor ocultos (servidor propio fijo)",
     )
 
+    # 5) v1.5 — El servidor fijo es privado: sin límites de calidad de servidor público.
+    reemplazar_una_vez(
+        RAIZ / "src" / "common.rs",
+        r'crate::get_custom_rendezvous_server\(get_option\("custom-rendezvous-server"\)\)\.is_empty\(\)',
+        "false // CRIPTO: siempre servidor propio (privado)",
+        "Servidor propio reconocido como privado (calidad completa)",
+    )
+
 
 def main() -> None:
     windows = "--windows" in sys.argv[1:]
     print(f"[CRIPTO] Aplicando marca CRIPTO Soporte ({'Windows' if windows else 'Android'})…")
     servidor, llave = leer_secretos()
-    aplicar_servidor(servidor, llave)
+    aplicar_servidor(servidor, llave, NOMBRE_INTERNO_WINDOWS if windows else NOMBRE_APP)
     if windows:
         aplicar_windows()
     else:
