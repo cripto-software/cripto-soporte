@@ -66,6 +66,9 @@
 #                     (el acompañante entra en modo solo ver) y confirmación
 #                     del permiso del cliente antes de grabar. Android no
 #                     cambia.
+#   v1.8  25/11/2026  El logo transparente ya no exige numpy (solo Pillow,
+#                     que es lo que instala el workflow de Android). Corrige
+#                     el fallo de la compilación Android #8.
 # ============================================================
 
 import os
@@ -428,22 +431,39 @@ def _mapa_rust(valores: dict) -> str:
 
 
 def _logo_transparente():
-    """Quita el fondo azul de icono_1024.png y deja solo el logo (RGBA, recortado)."""
+    """Quita el fondo azul de icono_1024.png y deja solo el logo (RGBA, recortado).
+    v1.8: solo necesita Pillow (numpy es opcional y acelera si está instalado)."""
     try:
         from PIL import Image
-        import numpy as np
     except ImportError:
-        error("Faltan las librerías Pillow y numpy (pip install pillow numpy).")
+        error("Falta la librería Pillow (pip install pillow).")
     origen = RAIZ / "cripto" / "marca" / "icono_1024.png"
     if not origen.exists():
         error(f"Falta el archivo de marca {origen.relative_to(RAIZ)}.")
-    rgb = np.array(Image.open(origen).convert("RGB")).astype(float)
-    fondo = np.array(COLOR_FONDO_RGB, dtype=float)
-    distancia = np.sqrt(((rgb - fondo) ** 2).sum(axis=2))
-    alfa = np.clip((distancia - 6) * 4, 0, 255)
-    a = alfa[..., None] / 255.0
-    color = np.where(a > 0.01, (rgb - fondo * (1 - a)) / np.maximum(a, 0.01), 0)
-    imagen = Image.fromarray(np.dstack([np.clip(color, 0, 255), alfa]).astype("uint8"), "RGBA")
+    base = Image.open(origen).convert("RGB")
+    fr, fg, fb = COLOR_FONDO_RGB
+    try:
+        import numpy as np
+        rgb = np.array(base).astype(float)
+        fondo = np.array(COLOR_FONDO_RGB, dtype=float)
+        distancia = np.sqrt(((rgb - fondo) ** 2).sum(axis=2))
+        alfa = np.clip((distancia - 6) * 4, 0, 255)
+        a = alfa[..., None] / 255.0
+        color = np.where(a > 0.01, (rgb - fondo * (1 - a)) / np.maximum(a, 0.01), 0)
+        imagen = Image.fromarray(np.dstack([np.clip(color, 0, 255), alfa]).astype("uint8"), "RGBA")
+    except ImportError:
+        pixeles = []
+        for r, g, b in base.getdata():
+            distancia = ((r - fr) ** 2 + (g - fg) ** 2 + (b - fb) ** 2) ** 0.5
+            alfa = max(0.0, min(255.0, (distancia - 6) * 4))
+            a = alfa / 255.0
+            if a > 0.01:
+                c = [max(0, min(255, int((v - f * (1 - a)) / a))) for v, f in ((r, fr), (g, fg), (b, fb))]
+            else:
+                c = [0, 0, 0]
+            pixeles.append((c[0], c[1], c[2], int(alfa)))
+        imagen = Image.new("RGBA", base.size)
+        imagen.putdata(pixeles)
     caja = imagen.getbbox()
     if not caja:
         error("No se pudo separar el logo del fondo en icono_1024.png.")
