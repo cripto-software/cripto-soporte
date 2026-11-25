@@ -56,6 +56,16 @@
 #                     servidor privado (antes lo trataba como público, lo que
 #                     limitaba la calidad y mostraba «configure su propio
 #                     servidor»). Android no cambia.
+#   v1.6  25/11/2026  Android: ícono de la notificación (barra superior y
+#                     pantalla bloqueada) con la silueta del logo CRIPTO en
+#                     lugar del de RustDesk, en las 5 densidades, y color de
+#                     acento de la notificación con el azul de la marca.
+#   v1.7  25/11/2026  Windows, fase 2 (cripto_tecnico.dart): panel «Dar
+#                     soporte» con la elección Técnico / Acompañante en la
+#                     pantalla principal, rol aplicado al abrir cada sesión
+#                     (el acompañante entra en modo solo ver) y confirmación
+#                     del permiso del cliente antes de grabar. Android no
+#                     cambia.
 # ============================================================
 
 import os
@@ -249,6 +259,28 @@ def aplicar_iconos() -> None:
         redondo.paste(clasico, (0, 0), mascara)
         redondo.save(destino / "ic_launcher_round.png", optimize=True)
     ok("Íconos CRIPTO generados en las 5 densidades de Android")
+
+    # v1.6 — Ícono de la notificación: Android exige una silueta blanca sobre
+    # fondo transparente (él la pinta con el color de acento).
+    logo = _logo_transparente()
+    canal_alfa = logo.split()[3]
+    tamanos_notificacion = [("mipmap-mdpi", 24), ("mipmap-hdpi", 36), ("mipmap-xhdpi", 48),
+                            ("mipmap-xxhdpi", 72), ("mipmap-xxxhdpi", 96)]
+    for carpeta, lado in tamanos_notificacion:
+        destino = res / carpeta / "ic_stat_logo.png"
+        if not destino.exists():
+            error(f"No existe {destino.relative_to(RAIZ)} (ícono de notificación de RustDesk).")
+        alfa = canal_alfa.resize((lado, lado), Image.LANCZOS)
+        silueta = Image.new("RGBA", (lado, lado), (255, 255, 255, 0))
+        silueta.putalpha(alfa)
+        silueta.save(destino, optimize=True)
+    ok("Ícono de la notificación con la silueta del logo CRIPTO")
+    reemplazar_una_vez(
+        res / "values" / "colors.xml",
+        r'<color name="primary">#[0-9A-Fa-f]{6,8}</color>',
+        '<color name="primary">#FF2563EB</color>',
+        "Color de acento de la notificación (azul CRIPTO)",
+    )
 
 
 def aplicar_flutter() -> None:
@@ -505,12 +537,78 @@ def aplicar_windows() -> None:
         "Ajustes de servidor ocultos (servidor propio fijo)",
     )
 
+    # 6) v1.7 — Fase 2: panel del técnico, roles y grabación con permiso.
+    aplicar_windows_fase2()
+
     # 5) v1.5 — El servidor fijo es privado: sin límites de calidad de servidor público.
     reemplazar_una_vez(
         RAIZ / "src" / "common.rs",
         r'crate::get_custom_rendezvous_server\(get_option\("custom-rendezvous-server"\)\)\.is_empty\(\)',
         "false // CRIPTO: siempre servidor propio (privado)",
         "Servidor propio reconocido como privado (calidad completa)",
+    )
+
+
+def aplicar_windows_fase2() -> None:
+    """v1.7 — Pantallas y reglas propias de CRIPTO en el programa del técnico."""
+    origen = RAIZ / "cripto" / "flutter" / "cripto_tecnico.dart"
+    if not origen.exists():
+        error(f"Falta el archivo {origen.relative_to(RAIZ)}.")
+    destino = RAIZ / "flutter" / "lib" / "cripto"
+    destino.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(origen, destino / "cripto_tecnico.dart")
+    ok("Pantallas del técnico copiadas a flutter/lib/cripto/")
+
+    lib = RAIZ / "flutter" / "lib"
+    # Panel «Dar soporte» (Técnico / Acompañante) sobre el número del cliente.
+    conexion = lib / "desktop" / "pages" / "connection_page.dart"
+    reemplazar_una_vez(
+        conexion,
+        r"(?m)^(import '\.\./\.\./common\.dart';)$",
+        "import '../../common.dart';\nimport '../../cripto/cripto_tecnico.dart';",
+        "Importación del panel del técnico",
+    )
+    reemplazar_una_vez(
+        conexion,
+        r"Row\(\s*children: \[\s*Flexible\(child: _buildRemoteIDTextField\(context\)\),\s*\],\s*\)\.marginOnly\(top: 22\),",
+        "const CriptoPanelTecnico(),\n"
+        "            Row(children: [Flexible(child: _buildRemoteIDTextField(context))])"
+        ".marginOnly(top: 16),",
+        "Panel «Dar soporte» con Técnico / Acompañante",
+    )
+
+    # Rol aplicado al abrir la sesión (Acompañante = solo ver).
+    modelo = lib / "models" / "model.dart"
+    reemplazar_una_vez(
+        modelo,
+        r"(?m)^(import '\.\./common\.dart';)$",
+        "import '../common.dart';\nimport '../cripto/cripto_tecnico.dart';",
+        "Importación del rol del técnico (modelo)",
+    )
+    reemplazar_una_vez(
+        modelo,
+        r"setViewOnly\(\s*peerId,\s*bind\.sessionGetToggleOptionSync\(\s*sessionId: sessionId, arg: kOptionToggleViewOnly\)\);",
+        "setViewOnly(peerId, criptoAplicarRol(sessionId, peerId));",
+        "Rol Técnico / Acompañante aplicado a cada sesión",
+    )
+
+    # Grabación solo con el permiso del cliente.
+    barra = lib / "desktop" / "widgets" / "remote_toolbar.dart"
+    reemplazar_una_vez(
+        barra,
+        r"(?m)^(import '\.\./\.\./common\.dart';)$",
+        "import '../../common.dart';\nimport '../../cripto/cripto_tecnico.dart';",
+        "Importación de la confirmación de grabación",
+    )
+    reemplazar_una_vez(
+        barra,
+        r"onPressed: \(\) => recordingModel\.toggle\(\),",
+        "onPressed: () async {\n"
+        "        if (recordingModel.start || await criptoConfirmarGrabacion(context)) {\n"
+        "          recordingModel.toggle();\n"
+        "        }\n"
+        "      },",
+        "Grabación solo con permiso del cliente",
     )
 
 
