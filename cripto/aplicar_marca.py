@@ -40,6 +40,14 @@
 #                     flotante y en el aviso de arranque (antes decían
 #                     «RustDesk»). WhatsApp directo al chat de soporte
 #                     (cambio en cripto_inicio.dart).
+#   v1.4  24/11/2026  Modo Windows (python cripto/aplicar_marca.py --windows)
+#                     para CRIPTO Soporte de escritorio (técnico): mismo
+#                     servidor y llave, nombre en el ejecutable (Runner.rc),
+#                     íconos .ico con el logo transparente, logo con nombre
+#                     dentro de la app (claro y oscuro), calidad máxima por
+#                     defecto (mejor imagen, 60 fps, color 4:4:4, imagen
+#                     ajustada a la ventana) y ajustes de servidor ocultos.
+#                     Sin argumentos sigue haciendo exactamente lo de Android.
 # ============================================================
 
 import os
@@ -351,13 +359,155 @@ def aplicar_flutter() -> None:
     ok("Logo CRIPTO copiado a flutter/assets/cripto_logo.png")
 
 
+# ------------------------------------------------------------
+# v1.4 — Windows (CRIPTO Soporte de escritorio para el técnico)
+# ------------------------------------------------------------
+EMPRESA = "PCG S.A.S."
+COLOR_FONDO_RGB = (11, 16, 41)  # mismo azul del fondo de icono_1024.png
+
+# Calidad por defecto: lo mejor desde el primer uso (el técnico puede cambiarlo).
+AJUSTES_IMAGEN_CRIPTO = {
+    "image_quality": "best",     # Mejor calidad de imagen
+    "custom-fps": "60",          # 60 cuadros por segundo
+    "i444": "Y",                 # Color real 4:4:4 (texto nítido)
+    "view_style": "adaptive",    # Ajustar la pantalla remota a la ventana
+    "codec-preference": "auto",  # El mejor códec que soporten los dos equipos
+}
+# Ajustes fijos de fábrica: el servidor propio no se puede cambiar desde la app.
+AJUSTES_FIJOS_CRIPTO = {
+    "hide-server-settings": "Y",
+    "hide-proxy-settings": "Y",
+    "hide-websocket-settings": "Y",
+}
+
+
+def _mapa_rust(valores: dict) -> str:
+    pares = ", ".join(f'("{k}".to_owned(), "{v}".to_owned())' for k, v in valores.items())
+    return f"RwLock::new(HashMap::from([{pares}]))"
+
+
+def _logo_transparente():
+    """Quita el fondo azul de icono_1024.png y deja solo el logo (RGBA, recortado)."""
+    try:
+        from PIL import Image
+        import numpy as np
+    except ImportError:
+        error("Faltan las librerías Pillow y numpy (pip install pillow numpy).")
+    origen = RAIZ / "cripto" / "marca" / "icono_1024.png"
+    if not origen.exists():
+        error(f"Falta el archivo de marca {origen.relative_to(RAIZ)}.")
+    rgb = np.array(Image.open(origen).convert("RGB")).astype(float)
+    fondo = np.array(COLOR_FONDO_RGB, dtype=float)
+    distancia = np.sqrt(((rgb - fondo) ** 2).sum(axis=2))
+    alfa = np.clip((distancia - 6) * 4, 0, 255)
+    a = alfa[..., None] / 255.0
+    color = np.where(a > 0.01, (rgb - fondo * (1 - a)) / np.maximum(a, 0.01), 0)
+    imagen = Image.fromarray(np.dstack([np.clip(color, 0, 255), alfa]).astype("uint8"), "RGBA")
+    caja = imagen.getbbox()
+    if not caja:
+        error("No se pudo separar el logo del fondo en icono_1024.png.")
+    imagen = imagen.crop(caja)
+    lado = max(imagen.size)
+    margen = int(lado * 0.04)
+    cuadro = Image.new("RGBA", (lado + 2 * margen, lado + 2 * margen), (0, 0, 0, 0))
+    cuadro.paste(imagen, ((lado - imagen.size[0]) // 2 + margen, (lado - imagen.size[1]) // 2 + margen))
+    return cuadro
+
+
+def _fuente(tamano: int, negrita: bool):
+    from PIL import ImageFont
+    candidatas = (
+        ["C:/Windows/Fonts/segoeuib.ttf", "C:/Windows/Fonts/arialbd.ttf",
+         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]
+        if negrita else
+        ["C:/Windows/Fonts/segoeui.ttf", "C:/Windows/Fonts/arial.ttf",
+         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+    )
+    for ruta in candidatas:
+        if Path(ruta).exists():
+            return ImageFont.truetype(ruta, tamano)
+    return ImageFont.load_default()
+
+
+def _logo_con_nombre(logo, color_texto, color_soporte):
+    """Logo + «CRIPTO Soporte» en 600×120 (se muestra a 300×60 en la app)."""
+    from PIL import Image, ImageDraw
+    lienzo = Image.new("RGBA", (600, 120), (0, 0, 0, 0))
+    lienzo.paste(logo.resize((108, 108), Image.LANCZOS), (6, 6), logo.resize((108, 108), Image.LANCZOS))
+    dibujo = ImageDraw.Draw(lienzo)
+    dibujo.text((132, 8), "CRIPTO", font=_fuente(56, True), fill=color_texto)
+    dibujo.text((134, 66), "Soporte", font=_fuente(40, False), fill=color_soporte)
+    return lienzo
+
+
+def aplicar_windows() -> None:
+    from PIL import Image
+
+    # 1) Datos del ejecutable (Propiedades → Detalles en Windows).
+    rc = RAIZ / "flutter" / "windows" / "runner" / "Runner.rc"
+    cambios_rc = [
+        (r'VALUE "CompanyName", "[^"]*"', f'VALUE "CompanyName", "{EMPRESA}"', "Empresa en el ejecutable"),
+        (r'VALUE "FileDescription", "[^"]*"', f'VALUE "FileDescription", "{NOMBRE_APP}"', "Descripción del ejecutable"),
+        (r'VALUE "ProductName", "[^"]*"', f'VALUE "ProductName", "{NOMBRE_APP}"', "Nombre del producto"),
+        (r'VALUE "LegalCopyright", "[^"]*"',
+         f'VALUE "LegalCopyright", "© 2026 {EMPRESA} - Basado en RustDesk (AGPL-3.0)"', "Derechos en el ejecutable"),
+    ]
+    for patron, nuevo, descripcion in cambios_rc:
+        reemplazar_una_vez(rc, patron, nuevo, descripcion)
+
+    # 2) Íconos de Windows (.ico con todos los tamaños) y del interior de la app.
+    logo = _logo_transparente()
+    tamanos_ico = [(16, 16), (20, 20), (24, 24), (32, 32), (40, 40), (48, 48), (64, 64), (128, 128), (256, 256)]
+    destinos_ico = [
+        RAIZ / "res" / "icon.ico",
+        RAIZ / "res" / "tray-icon.ico",
+        RAIZ / "flutter" / "windows" / "runner" / "resources" / "app_icon.ico",
+    ]
+    for destino in destinos_ico:
+        if not destino.exists():
+            error(f"No existe {destino.relative_to(RAIZ)}. ¿Cambió la estructura de RustDesk?")
+        logo.resize((256, 256), Image.LANCZOS).save(destino, format="ICO", sizes=tamanos_ico)
+    ok("Íconos de Windows (.ico) con el logo CRIPTO")
+    logo.resize((1024, 1024), Image.LANCZOS).save(RAIZ / "res" / "icon.png", optimize=True)
+    logo.resize((256, 256), Image.LANCZOS).save(RAIZ / "flutter" / "assets" / "icon.png", optimize=True)
+    ok("Ícono interno de la app (assets/icon.png)")
+
+    # 3) Logo con nombre dentro de la app: la marca siempre visible.
+    activos = RAIZ / "flutter" / "assets"
+    _logo_con_nombre(logo, (15, 23, 42), (37, 99, 235)).save(activos / "logo.png", optimize=True)
+    _logo_con_nombre(logo, (15, 23, 42), (37, 99, 235)).save(activos / "logo_light.png", optimize=True)
+    _logo_con_nombre(logo, (255, 255, 255), (96, 165, 250)).save(activos / "logo_dark.png", optimize=True)
+    ok("Logo CRIPTO Soporte en la pantalla principal (tema claro y oscuro)")
+
+    # 4) Lo mejor por defecto y servidor bloqueado.
+    config = RAIZ / "libs" / "hbb_common" / "src" / "config.rs"
+    reemplazar_una_vez(
+        config,
+        r"pub static ref DEFAULT_DISPLAY_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);",
+        "pub static ref DEFAULT_DISPLAY_SETTINGS: RwLock<HashMap<String, String>> = "
+        + _mapa_rust(AJUSTES_IMAGEN_CRIPTO) + ";",
+        "Calidad máxima por defecto (mejor imagen, 60 fps, 4:4:4, ajustar a la ventana)",
+    )
+    reemplazar_una_vez(
+        config,
+        r"pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);",
+        "pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = "
+        + _mapa_rust(AJUSTES_FIJOS_CRIPTO) + ";",
+        "Ajustes de servidor ocultos (servidor propio fijo)",
+    )
+
+
 def main() -> None:
-    print("[CRIPTO] Aplicando marca CRIPTO Soporte…")
+    windows = "--windows" in sys.argv[1:]
+    print(f"[CRIPTO] Aplicando marca CRIPTO Soporte ({'Windows' if windows else 'Android'})…")
     servidor, llave = leer_secretos()
     aplicar_servidor(servidor, llave)
-    aplicar_android()
-    aplicar_iconos()
-    aplicar_flutter()
+    if windows:
+        aplicar_windows()
+    else:
+        aplicar_android()
+        aplicar_iconos()
+        aplicar_flutter()
     print("[CRIPTO] Marca aplicada correctamente.")
 
 
