@@ -16,6 +16,9 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  24/11/2026  Versión inicial (v1.2 de la app).
+//   v1.1  24/11/2026  App v1.3: «Enviar por WhatsApp» abre directo el chat
+//                     de soporte de CRIPTO (098 566 6807) con el mensaje
+//                     listo; el cliente solo pulsa enviar.
 // ============================================================
 
 import 'dart:async';
@@ -109,12 +112,23 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
         nombre: etiqueta);
   }
 
+  /// v1.1 — Número de WhatsApp de soporte en formato internacional
+  /// (Ecuador 593 + número sin el 0 inicial), sacado de kCriptoTelefono.
+  String _numeroWhatsAppSoporte() {
+    var digitos = kCriptoTelefono.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitos.startsWith('0')) digitos = digitos.substring(1);
+    return '593$digitos';
+  }
+
   Future<void> _enviarWhatsApp(String id) async {
     final texto = Uri.encodeComponent(
         'Hola, necesito ayuda. Mi número de CRIPTO Soporte es $id');
     try {
-      await launchUrl(Uri.parse('https://wa.me/?text=$texto'),
+      // v1.1 — Directo al chat de soporte de CRIPTO.
+      await launchUrl(
+          Uri.parse('https://wa.me/${_numeroWhatsAppSoporte()}?text=$texto'),
           mode: LaunchMode.externalApplication);
+      debugPrint('[CRIPTO] WhatsApp abierto hacia soporte');
     } catch (e) {
       debugPrint('[CRIPTO] No se pudo abrir WhatsApp: $e');
     }

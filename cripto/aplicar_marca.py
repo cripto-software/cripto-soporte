@@ -33,6 +33,13 @@
 #                     de carpetas y el aviso de inicio de RustDesk (el aviso
 #                     CRIPTO va antes) y la descripción de Accesibilidad
 #                     queda en español.
+#   v1.3  24/11/2026  App v1.3: minSdk 24 (Android 7.0 o superior), exigido
+#                     por la protección automática de Google Play. Marca
+#                     CRIPTO Soporte también en la notificación del servicio,
+#                     en el canal de notificaciones, en el menú del botón
+#                     flotante y en el aviso de arranque (antes decían
+#                     «RustDesk»). WhatsApp directo al chat de soporte
+#                     (cambio en cripto_inicio.dart).
 # ============================================================
 
 import os
@@ -48,6 +55,7 @@ NOMBRE_SERVICIO = "CRIPTO Soporte Control"
 APP_ID_ORIGINAL = "com.carriez.flutter_hbb"
 APP_ID_CRIPTO = "com.criptosoftware.soporte"
 COLOR_FONDO_ICONO = "#0B1029"
+MIN_SDK_CRIPTO = 24  # v1.3 — requisito de la protección automática de Google Play
 
 # Tamaños oficiales de Android: (carpeta, ícono clásico, primer plano adaptable)
 TAMANOS = [
@@ -131,7 +139,14 @@ def aplicar_android() -> None:
         f'applicationId "{APP_ID_CRIPTO}"',
         f"Identificador de la app ({APP_ID_CRIPTO})",
     )
-    manifiesto = android / "src" / "main" / "AndroidManifest.xml"
+    # v1.3 — Android 7.0 o superior (la protección automática de Play exige 24).
+    reemplazar_una_vez(
+        android / "build.gradle",
+        r"minSdkVersion \d+",
+        f"minSdkVersion {MIN_SDK_CRIPTO}",
+        f"Versión mínima de Android (minSdk {MIN_SDK_CRIPTO})",
+    )
+    manifiesto =android / "src" / "main" / "AndroidManifest.xml"
     reemplazar_una_vez(manifiesto, r'android:label="RustDesk"', f'android:label="{NOMBRE_APP}"',
                        "Nombre visible de la app")
     reemplazar_una_vez(manifiesto, r'android:label="RustDesk Input"', f'android:label="{NOMBRE_SERVICIO}"',
@@ -149,6 +164,40 @@ def aplicar_android() -> None:
         r'<color name="ic_launcher_background">#[0-9A-Fa-f]{6,8}</color>',
         f'<color name="ic_launcher_background">{COLOR_FONDO_ICONO}</color>',
         "Color de fondo del ícono",
+    )
+
+    # v1.3 — Marca CRIPTO en los textos fijos del código Kotlin.
+    kotlin = android / "src" / "main" / "kotlin" / "com" / "carriez" / "flutter_hbb"
+    servicio = kotlin / "MainService.kt"
+    reemplazar_una_vez(
+        servicio,
+        r'const val DEFAULT_NOTIFY_TITLE = "RustDesk"',
+        f'const val DEFAULT_NOTIFY_TITLE = "{NOMBRE_APP}"',
+        "Título de la notificación del servicio",
+    )
+    reemplazar_una_vez(
+        servicio,
+        r'val channelName = "RustDesk Service"',
+        f'val channelName = "{NOMBRE_APP}"',
+        "Nombre del canal de notificaciones",
+    )
+    reemplazar_una_vez(
+        servicio,
+        r'description = "RustDesk Service Channel"',
+        'description = "Avisos de las sesiones de soporte de CRIPTO Software"',
+        "Descripción del canal de notificaciones",
+    )
+    reemplazar_una_vez(
+        kotlin / "FloatingWindowService.kt",
+        r'translate\("Show RustDesk"\)',
+        f'"Abrir {NOMBRE_APP}"',
+        "Menú del botón flotante",
+    )
+    reemplazar_una_vez(
+        kotlin / "BootReceiver.kt",
+        r'"RustDesk is Open"',
+        f'"{NOMBRE_APP} está activo"',
+        "Aviso de arranque del celular",
     )
 
 
