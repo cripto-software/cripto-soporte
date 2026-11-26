@@ -84,6 +84,14 @@
 #                     espacio vacío que tenía a la derecha). Barra izquierda
 #                     de 260 px para que la tarjeta de publicidad se lea
 #                     cómoda. Android no cambia.
+#   v2.1  26/11/2026  Ícono propio de CRIPTO Soporte (logo CRIPTO con
+#                     audífonos de soporte, fondo blanco) para que no se
+#                     confunda con el ícono de CRIPTO ERP. Archivo nuevo
+#                     cripto/marca/icono_soporte_1024.png. Se aplica en
+#                     Android (ícono clásico, redondo y adaptable con fondo
+#                     blanco) y en Windows (ejecutable, bandeja y barra de
+#                     tareas). El logo con nombre de la pantalla principal y
+#                     el ícono de la notificación de Android no cambian.
 # ============================================================
 
 import os
@@ -99,7 +107,7 @@ NOMBRE_SERVICIO = "CRIPTO Soporte Control"
 NOMBRE_INTERNO_WINDOWS = "CRIPTO-Soporte"  # v1.5 — el instalador de Windows no acepta espacios
 APP_ID_ORIGINAL = "com.carriez.flutter_hbb"
 APP_ID_CRIPTO = "com.criptosoftware.soporte"
-COLOR_FONDO_ICONO = "#0B1029"
+COLOR_FONDO_ICONO = "#FFFFFF"  # v2.1 — fondo blanco del ícono con audífonos (antes #0B1029)
 MIN_SDK_CRIPTO = 24  # v1.3 — requisito de la protección automática de Google Play
 
 # Tamaños oficiales de Android: (carpeta, ícono clásico, primer plano adaptable)
@@ -252,31 +260,27 @@ def aplicar_iconos() -> None:
     except ImportError:
         error("Falta la librería Pillow (pip install pillow).")
 
-    marca = RAIZ / "cripto" / "marca"
-    origen_primer_plano = marca / "ic_launcher_foreground_432.png"
-    origen_icono = marca / "icono_1024.png"
-    for archivo in (origen_primer_plano, origen_icono):
-        if not archivo.exists():
-            error(f"Falta el archivo de marca {archivo.relative_to(RAIZ)}.")
-
-    primer_plano = Image.open(origen_primer_plano).convert("RGBA")
-    icono = Image.open(origen_icono).convert("RGBA")
+    # v2.1 — Ícono propio de CRIPTO Soporte (logo con audífonos, fondo blanco).
+    # Antes se usaban icono_1024.png e ic_launcher_foreground_432.png (iguales
+    # al ícono del ERP); esos archivos se conservan en cripto/marca/.
+    contenido = _icono_soporte_transparente()
     res = RAIZ / "flutter" / "android" / "app" / "src" / "main" / "res"
 
     for carpeta, lado_icono, lado_primer_plano in TAMANOS:
         destino = res / carpeta
         if not destino.is_dir():
             error(f"No existe la carpeta de íconos {destino.relative_to(RAIZ)}.")
-        primer_plano.resize((lado_primer_plano, lado_primer_plano), Image.LANCZOS).save(
-            destino / "ic_launcher_foreground.png", optimize=True)
-        clasico = icono.resize((lado_icono, lado_icono), Image.LANCZOS)
-        clasico.save(destino / "ic_launcher.png", optimize=True)
-        mascara = Image.new("L", (lado_icono, lado_icono), 0)
-        ImageDraw.Draw(mascara).ellipse((0, 0, lado_icono - 1, lado_icono - 1), fill=255)
-        redondo = Image.new("RGBA", (lado_icono, lado_icono), (0, 0, 0, 0))
-        redondo.paste(clasico, (0, 0), mascara)
-        redondo.save(destino / "ic_launcher_round.png", optimize=True)
-    ok("Íconos CRIPTO generados en las 5 densidades de Android")
+        # Ícono adaptable: el dibujo va dentro de la zona segura (66 % central)
+        # sobre fondo transparente; el fondo blanco lo pone ic_launcher_background.
+        primer_plano = Image.new("RGBA", (lado_primer_plano, lado_primer_plano), (0, 0, 0, 0))
+        tam = int(lado_primer_plano * 0.66)
+        primer_plano.alpha_composite(contenido.resize((tam, tam), Image.LANCZOS),
+                                     ((lado_primer_plano - tam) // 2, (lado_primer_plano - tam) // 2))
+        primer_plano.save(destino / "ic_launcher_foreground.png", optimize=True)
+        _icono_soporte_baldosa(lado_icono).save(destino / "ic_launcher.png", optimize=True)
+        _icono_soporte_baldosa(lado_icono, redondo=True, ocupa=0.74).save(
+            destino / "ic_launcher_round.png", optimize=True)
+    ok("Íconos de CRIPTO Soporte (con audífonos) en las 5 densidades de Android")
 
     # v1.6 — Ícono de la notificación: Android exige una silueta blanca sobre
     # fondo transparente (él la pinta con el color de acento).
@@ -490,6 +494,65 @@ def _logo_transparente():
     return cuadro
 
 
+def _icono_soporte_original():
+    """v2.1 — Ícono de CRIPTO Soporte (logo con audífonos, fondo blanco)."""
+    try:
+        from PIL import Image
+    except ImportError:
+        error("Falta la librería Pillow (pip install pillow).")
+    origen = RAIZ / "cripto" / "marca" / "icono_soporte_1024.png"
+    if not origen.exists():
+        error(f"Falta el archivo de marca {origen.relative_to(RAIZ)} (ícono con audífonos).")
+    return Image.open(origen).convert("RGB")
+
+
+def _icono_soporte_transparente():
+    """v2.1 — Logo con audífonos sin el fondo blanco (RGBA, recortado y cuadrado)."""
+    from PIL import Image
+    base = _icono_soporte_original()
+    pixeles = []
+    for r, g, b in base.getdata():
+        # Cuanto más se aleja del blanco, más opaco; se recupera el color real.
+        alfa = max(0.0, min(255.0, (255 - min(r, g, b) - 4) * 3.0))
+        a = alfa / 255.0
+        if a > 0.01:
+            c = [max(0, min(255, int((v - 255 * (1 - a)) / a))) for v in (r, g, b)]
+        else:
+            c = [0, 0, 0]
+        pixeles.append((c[0], c[1], c[2], int(alfa)))
+    imagen = Image.new("RGBA", base.size)
+    imagen.putdata(pixeles)
+    caja = imagen.getbbox()
+    if not caja:
+        error("No se pudo separar el ícono con audífonos del fondo blanco.")
+    imagen = imagen.crop(caja)
+    lado = max(imagen.size)
+    cuadro = Image.new("RGBA", (lado, lado), (0, 0, 0, 0))
+    cuadro.paste(imagen, ((lado - imagen.size[0]) // 2, (lado - imagen.size[1]) // 2))
+    return cuadro
+
+
+def _icono_soporte_baldosa(lado: int, redondo: bool = False, ocupa: float = 0.80):
+    """v2.1 — Ícono con audífonos sobre fondo blanco (esquinas redondeadas o círculo)."""
+    from PIL import Image, ImageDraw
+    escala = 4
+    grande = lado * escala
+    contenido = _icono_soporte_transparente()
+    tam = int(grande * ocupa)
+    contenido = contenido.resize((tam, tam), Image.LANCZOS)
+    fondo = Image.new("RGBA", (grande, grande), (255, 255, 255, 255))
+    fondo.alpha_composite(contenido, ((grande - tam) // 2, (grande - tam) // 2))
+    mascara = Image.new("L", (grande, grande), 0)
+    if redondo:
+        ImageDraw.Draw(mascara).ellipse((0, 0, grande - 1, grande - 1), fill=255)
+    else:
+        ImageDraw.Draw(mascara).rounded_rectangle((0, 0, grande - 1, grande - 1),
+                                                   radius=int(grande * 0.22), fill=255)
+    salida = Image.new("RGBA", (grande, grande), (0, 0, 0, 0))
+    salida.paste(fondo, (0, 0), mascara)
+    return salida.resize((lado, lado), Image.LANCZOS)
+
+
 def _fuente(tamano: int, negrita: bool):
     from PIL import ImageFont
     candidatas = (
@@ -548,10 +611,11 @@ def aplicar_windows() -> None:
     for destino in destinos_ico:
         if not destino.exists():
             error(f"No existe {destino.relative_to(RAIZ)}. ¿Cambió la estructura de RustDesk?")
-        logo.resize((256, 256), Image.LANCZOS).save(destino, format="ICO", sizes=tamanos_ico)
-    ok("Íconos de Windows (.ico) con el logo CRIPTO")
-    logo.resize((1024, 1024), Image.LANCZOS).save(RAIZ / "res" / "icon.png", optimize=True)
-    logo.resize((256, 256), Image.LANCZOS).save(RAIZ / "flutter" / "assets" / "icon.png", optimize=True)
+        # v2.1 — Ícono propio con audífonos (fondo blanco) para no confundirlo con el ERP.
+        _icono_soporte_baldosa(256).save(destino, format="ICO", sizes=tamanos_ico)
+    ok("Íconos de Windows (.ico) con el ícono de CRIPTO Soporte (audífonos)")
+    _icono_soporte_baldosa(1024).save(RAIZ / "res" / "icon.png", optimize=True)
+    _icono_soporte_baldosa(256).save(RAIZ / "flutter" / "assets" / "icon.png", optimize=True)
     ok("Ícono interno de la app (assets/icon.png)")
 
     # 3) Logo con nombre dentro de la app: la marca siempre visible.
