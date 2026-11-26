@@ -78,6 +78,12 @@
 #                     CRIPTO (azul #2563EB) en toda la app, incluida la barra
 #                     de la sesión. Barra izquierda más ancha (240 px).
 #                     Android no cambia.
+#   v2.0  26/11/2026  Windows: publicidad por nichos y WhatsApp de soporte
+#                     (cripto_publicidad.dart v2.0). El logo «CRIPTO Soporte»
+#                     de la barra izquierda queda centrado (se recorta el
+#                     espacio vacío que tenía a la derecha). Barra izquierda
+#                     de 260 px para que la tarjeta de publicidad se lea
+#                     cómoda. Android no cambia.
 # ============================================================
 
 import os
@@ -507,6 +513,12 @@ def _logo_con_nombre(logo, color_texto, color_soporte):
     dibujo = ImageDraw.Draw(lienzo)
     dibujo.text((132, 8), "CRIPTO", font=_fuente(56, True), fill=color_texto)
     dibujo.text((134, 66), "Soporte", font=_fuente(40, False), fill=color_soporte)
+    # v2.0 — Se recorta el espacio vacío de la derecha para que el logo quede
+    # centrado en la barra izquierda (antes se veía corrido a la izquierda).
+    caja = lienzo.getbbox()
+    if caja:
+        izquierda, _, derecha, _ = caja
+        lienzo = lienzo.crop((max(0, izquierda - 6), 0, min(600, derecha + 6), 120))
     return lienzo
 
 
@@ -699,7 +711,7 @@ def aplicar_windows_publicidad() -> None:
     reemplazar_una_vez(
         inicio,
         r"width: isIncomingOnly \? 280\.0 : 200\.0,",
-        "width: isIncomingOnly ? 280.0 : 240.0,",
+        "width: isIncomingOnly ? 280.0 : 260.0,",  # v2.0: 260 px (antes 240)
         "Barra izquierda más ancha para la publicidad",
     )
 
