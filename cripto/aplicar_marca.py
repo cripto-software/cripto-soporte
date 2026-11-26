@@ -69,6 +69,15 @@
 #   v1.8  25/11/2026  El logo transparente ya no exige numpy (solo Pillow,
 #                     que es lo que instala el workflow de Android). Corrige
 #                     el fallo de la compilación Android #8.
+#   v1.9  25/11/2026  Windows, fase publicidad (cripto_publicidad.dart):
+#                     tarjeta de publicidad que rota (CRIPTO ERP y PCGreen),
+#                     logo de CRIPTO Software al pie y aviso de bienvenida una
+#                     vez al día; todos los enlaces a pc-green.com. El crédito
+#                     «Con tecnología de RustDesk» se mantiene (licencia AGPL)
+#                     pero ahora lleva a pc-green.com y se lee mejor. Colores
+#                     CRIPTO (azul #2563EB) en toda la app, incluida la barra
+#                     de la sesión. Barra izquierda más ancha (240 px).
+#                     Android no cambia.
 # ============================================================
 
 import os
@@ -559,6 +568,8 @@ def aplicar_windows() -> None:
 
     # 6) v1.7 — Fase 2: panel del técnico, roles y grabación con permiso.
     aplicar_windows_fase2()
+    # 7) v1.9 — Publicidad de CRIPTO Software y colores de la marca.
+    aplicar_windows_publicidad()
 
     # 5) v1.5 — El servidor fijo es privado: sin límites de calidad de servidor público.
     reemplazar_una_vez(
@@ -629,6 +640,67 @@ def aplicar_windows_fase2() -> None:
         "        }\n"
         "      },",
         "Grabación solo con permiso del cliente",
+    )
+
+
+def aplicar_windows_publicidad() -> None:
+    """v1.9 — Publicidad de CRIPTO Software y colores de la marca (solo Windows)."""
+    origen = RAIZ / "cripto" / "flutter" / "cripto_publicidad.dart"
+    if not origen.exists():
+        error(f"Falta el archivo {origen.relative_to(RAIZ)}.")
+    destino = RAIZ / "flutter" / "lib" / "cripto"
+    destino.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(origen, destino / "cripto_publicidad.dart")
+    logo = RAIZ / "cripto" / "marca" / "logo_cripto_software.png"
+    if not logo.exists():
+        error(f"Falta el archivo de marca {logo.relative_to(RAIZ)}.")
+    shutil.copyfile(logo, RAIZ / "flutter" / "assets" / "cripto_software.png")
+    ok("Publicidad y logo de CRIPTO Software copiados")
+
+    lib = RAIZ / "flutter" / "lib"
+    comun = lib / "common.dart"
+    # Crédito de RustDesk (AGPL): se mantiene, pero lleva a la página de CRIPTO.
+    reemplazar_una_vez(
+        comun,
+        r"launchUrl\(Uri\.parse\('https://rustdesk\.com'\)\);(\s*\},\s*child: Opacity\(\s*)opacity: 0\.5,",
+        "launchUrl(Uri.parse('https://pc-green.com'));\n      },\n      child: Opacity(\n          opacity: 0.85,",
+        "Crédito «Con tecnología de RustDesk» con enlace a pc-green.com",
+    )
+    # Colores de la marca CRIPTO en toda la app (también en la barra de la sesión).
+    for patron, nuevo, descripcion in [
+        (r"static const Color accent = Color\(0xFF0071FF\);",
+         "static const Color accent = Color(0xFF2563EB);", "Color principal CRIPTO"),
+        (r"static const Color accent50 = Color\(0x770071FF\);",
+         "static const Color accent50 = Color(0x772563EB);", "Color principal CRIPTO (50 %)"),
+        (r"static const Color accent80 = Color\(0xAA0071FF\);",
+         "static const Color accent80 = Color(0xAA2563EB);", "Color principal CRIPTO (80 %)"),
+        (r"static const Color button = Color\(0xFF2C8CFF\);",
+         "static const Color button = Color(0xFF2563EB);", "Color de los botones CRIPTO"),
+        (r"static const Color idColor = Color\(0xFF00B6F0\);",
+         "static const Color idColor = Color(0xFF1D4ED8);", "Color del ID CRIPTO"),
+    ]:
+        reemplazar_una_vez(comun, patron, nuevo, descripcion)
+
+    # Panel de publicidad en la barra izquierda de la pantalla principal.
+    inicio = lib / "desktop" / "pages" / "desktop_home_page.dart"
+    reemplazar_una_vez(
+        inicio,
+        r"(?m)^import '\.\./widgets/button\.dart';$",
+        "import '../widgets/button.dart';\nimport '../../cripto/cripto_publicidad.dart';",
+        "Importación de la publicidad CRIPTO",
+    )
+    reemplazar_una_vez(
+        inicio,
+        r"\n    \];\n    if \(isIncomingOnly\) \{\n      children\.addAll\(\[",
+        "\n      if (!isIncomingOnly) const CriptoPanelPublicidad(),\n    ];\n"
+        "    if (isIncomingOnly) {\n      children.addAll([",
+        "Panel de publicidad en la barra izquierda",
+    )
+    reemplazar_una_vez(
+        inicio,
+        r"width: isIncomingOnly \? 280\.0 : 200\.0,",
+        "width: isIncomingOnly ? 280.0 : 240.0,",
+        "Barra izquierda más ancha para la publicidad",
     )
 
 
