@@ -17,6 +17,13 @@
 #                     flutter-build.yml de RustDesk 1.5.3, solo x64, sin
 #                     MSI ni controladores opcionales de pantalla virtual
 #                     e impresora).
+#   v1.1  25/11/2026  Corrige la instalación: el ejecutable se renombra a
+#                     CRIPTO-Soporte.exe (igual al nombre interno de la app).
+#                     El instalador copia la carpeta tal cual y crea los
+#                     accesos directos apuntando a «<nombre interno>.exe»; con
+#                     rustdesk.exe salía «Windows no puede encontrar el
+#                     archivo C:\Program Files\CRIPTO-Soporte\CRIPTO-Soporte.exe».
+#                     Verifica que el .exe exista antes de empaquetar.
 # Mantenimiento: tras cada «Sync fork», si la compilación falla,
 # copiar aquí las versiones del bloque env de flutter-build.yml.
 # ============================================================
@@ -43,6 +50,8 @@ env:
   VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
   VERSION: "1.5.3"
   NOMBRE_EXE: "CRIPTO-Soporte"
+  # v1.1 — Debe ser IGUAL a NOMBRE_INTERNO_WINDOWS de cripto/aplicar_marca.py.
+  NOMBRE_INTERNO: "CRIPTO-Soporte"
 
 jobs:
   generate-bridge:
@@ -149,6 +158,11 @@ jobs:
         run: |
           python3 .\build.py --portable --flutter --skip-portable-pack --hwcodec --vram
           mv ./flutter/build/windows/x64/runner/Release ./rustdesk
+          # v1.1 — El ejecutable lleva el nombre interno de la app (lo exige el instalador).
+          if (-not (Test-Path "./rustdesk/rustdesk.exe")) { throw "[CRIPTO] No se generó rustdesk.exe" }
+          Rename-Item -Path "./rustdesk/rustdesk.exe" -NewName "$env:NOMBRE_INTERNO.exe"
+          if (-not (Test-Path "./rustdesk/$env:NOMBRE_INTERNO.exe")) { throw "[CRIPTO] No se pudo renombrar el ejecutable" }
+          Write-Host "[CRIPTO] Ejecutable: $env:NOMBRE_INTERNO.exe"
           Write-Host "[CRIPTO] Archivos compilados:"
           Get-ChildItem ./rustdesk | Select-Object Name, Length | Format-Table -AutoSize
 
@@ -158,7 +172,7 @@ jobs:
           sed -i '/dpiAware/d' res/manifest.xml
           pushd ./libs/portable
           pip3 install -r requirements.txt
-          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
+          python3 ./generate.py -f ../../rustdesk/ -o . -e "../../rustdesk/${NOMBRE_INTERNO}.exe"
           popd
           mkdir -p ./SalidaCripto
           mv ./target/release/rustdesk-portable-packer.exe "./SalidaCripto/${NOMBRE_EXE}-${VERSION}-x64.exe"
