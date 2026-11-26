@@ -92,6 +92,11 @@
 #                     blanco) y en Windows (ejecutable, bandeja y barra de
 #                     tareas). El logo con nombre de la pantalla principal y
 #                     el ícono de la notificación de Android no cambian.
+#   v2.2  26/11/2026  Windows: el ícono con audífonos va TRANSPARENTE (sin el
+#                     cuadro blanco), igual que el acceso de CRIPTO Software en
+#                     el escritorio; antes se veía como una imagen pegada.
+#                     Android no cambia: allí el sistema pone cada ícono dentro
+#                     de una forma (círculo o cuadro), por eso lleva fondo blanco.
 # ============================================================
 
 import os
@@ -602,6 +607,7 @@ def aplicar_windows() -> None:
 
     # 2) Íconos de Windows (.ico con todos los tamaños) y del interior de la app.
     logo = _logo_transparente()
+    icono_win = _icono_soporte_transparente()  # v2.2
     tamanos_ico = [(16, 16), (20, 20), (24, 24), (32, 32), (40, 40), (48, 48), (64, 64), (128, 128), (256, 256)]
     destinos_ico = [
         RAIZ / "res" / "icon.ico",
@@ -611,11 +617,12 @@ def aplicar_windows() -> None:
     for destino in destinos_ico:
         if not destino.exists():
             error(f"No existe {destino.relative_to(RAIZ)}. ¿Cambió la estructura de RustDesk?")
-        # v2.1 — Ícono propio con audífonos (fondo blanco) para no confundirlo con el ERP.
-        _icono_soporte_baldosa(256).save(destino, format="ICO", sizes=tamanos_ico)
-    ok("Íconos de Windows (.ico) con el ícono de CRIPTO Soporte (audífonos)")
-    _icono_soporte_baldosa(1024).save(RAIZ / "res" / "icon.png", optimize=True)
-    _icono_soporte_baldosa(256).save(RAIZ / "flutter" / "assets" / "icon.png", optimize=True)
+        # v2.1 — Ícono propio con audífonos para no confundirlo con el ERP.
+        # v2.2 — Transparente (sin cuadro blanco), como el de CRIPTO Software.
+        icono_win.resize((256, 256), Image.LANCZOS).save(destino, format="ICO", sizes=tamanos_ico)
+    ok("Íconos de Windows (.ico) transparentes con el ícono de CRIPTO Soporte (audífonos)")
+    icono_win.resize((1024, 1024), Image.LANCZOS).save(RAIZ / "res" / "icon.png", optimize=True)
+    icono_win.resize((256, 256), Image.LANCZOS).save(RAIZ / "flutter" / "assets" / "icon.png", optimize=True)
     ok("Ícono interno de la app (assets/icon.png)")
 
     # 3) Logo con nombre dentro de la app: la marca siempre visible.
