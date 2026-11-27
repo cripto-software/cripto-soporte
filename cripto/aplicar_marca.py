@@ -97,6 +97,16 @@
 #                     el escritorio; antes se veía como una imagen pegada.
 #                     Android no cambia: allí el sistema pone cada ícono dentro
 #                     de una forma (círculo o cuadro), por eso lleva fondo blanco.
+#   v2.3  26/11/2026  Licencias y pases (cripto/rust/cripto_licencia.rs y
+#                     cripto/flutter/cripto_licencia.dart). Android: la app
+#                     del celular RECHAZA toda conexión que no traiga un pase
+#                     válido del servidor de licencias de PCG SAS (sin pase o
+#                     sin internet = rechazo) y avisa el fin de cada sesión.
+#                     Windows: el programa del técnico pide un pase antes de
+#                     cada conexión si tiene licencia, y muestra «Activar
+#                     licencia de técnico» bajo «Dar soporte». Sin licencia
+#                     el soporte entre PC funciona igual que antes. Se agrega
+#                     el campo cripto_pase (número 50) a LoginRequest.
 # ============================================================
 
 import os
@@ -653,6 +663,8 @@ def aplicar_windows() -> None:
     aplicar_windows_fase2()
     # 7) v1.9 — Publicidad de CRIPTO Software y colores de la marca.
     aplicar_windows_publicidad()
+    # 8) v2.3 — Activación de la licencia de técnico (bajo «Dar soporte»).
+    aplicar_windows_licencia()
 
     # 5) v1.5 — El servidor fijo es privado: sin límites de calidad de servidor público.
     reemplazar_una_vez(
@@ -787,11 +799,114 @@ def aplicar_windows_publicidad() -> None:
     )
 
 
+def aplicar_licencia() -> None:
+    """v2.3 — «Enchufe» con el servidor de licencias (Android y Windows).
+
+    El código de RustDesk solo cambia en 5 puntos pequeños; toda la lógica
+    está en cripto/rust/cripto_licencia.rs y en el servidor de PCG SAS.
+    """
+    origen = RAIZ / "cripto" / "rust" / "cripto_licencia.rs"
+    if not origen.exists():
+        error(f"Falta el archivo {origen.relative_to(RAIZ)}.")
+    shutil.copyfile(origen, RAIZ / "src" / "cripto_licencia.rs")
+    ok("Módulo de licencias copiado a src/cripto_licencia.rs")
+
+    reemplazar_una_vez(
+        RAIZ / "src" / "lib.rs",
+        r"(?m)^mod hbbs_http;$",
+        "mod hbbs_http;\nmod cripto_licencia; // CRIPTO v2.3",
+        "Registro del módulo de licencias",
+    )
+
+    # Campo nuevo en la solicitud de conexión (los equipos sin él lo ignoran).
+    reemplazar_una_vez(
+        RAIZ / "libs" / "base" / "protos" / "message.proto",
+        r"(  bool trusted_device_v2_supported = 19;\n)\}",
+        "  bool trusted_device_v2_supported = 19;\n"
+        "  string cripto_pase = 50; // CRIPTO: pase de licencia de un solo uso\n}",
+        "Campo cripto_pase en LoginRequest",
+    )
+
+    # Programa del técnico: pide el pase y lo pone en la solicitud de conexión.
+    reemplazar_una_vez(
+        RAIZ / "src" / "client.rs",
+        r"let msg_out = lc\s*\.read\(\)\s*\.unwrap\(\)\s*\.create_login_msg\(os_username, os_password, password\);",
+        "let mut msg_out = lc\n"
+        "        .read()\n"
+        "        .unwrap()\n"
+        "        .create_login_msg(os_username, os_password, password);\n"
+        "    // CRIPTO v2.3: pase de licencia de un solo uso (vacío si no hay licencia).\n"
+        "    let cripto_destino = lc.read().unwrap().id.clone();\n"
+        "    let cripto_pase = crate::cripto_licencia::pedir_pase(&cripto_destino).await;\n"
+        "    if !cripto_pase.is_empty() {\n"
+        "        if let Some(base::message_proto::message::Union::LoginRequest(lr)) = msg_out.union.as_mut() {\n"
+        "            lr.cripto_pase = cripto_pase;\n"
+        "        }\n"
+        "    }",
+        "El técnico pide el pase antes de conectar",
+    )
+
+    conexion = RAIZ / "src" / "server" / "connection.rs"
+    # App del celular: sin pase válido no entra nadie (antes de mostrar nada).
+    reemplazar_una_vez(
+        conexion,
+        r"(if !self\.check_login_scope\(&lr\)\.await \{\s*return false;\s*\})",
+        "if !self.check_login_scope(&lr).await {\n"
+        "                return false;\n"
+        "            }\n"
+        "            // CRIPTO v2.3: en el celular solo entra un técnico con pase válido.\n"
+        "            #[cfg(target_os = \"android\")]\n"
+        "            if !crate::cripto_licencia::validar_pase(&lr.my_id, &lr.cripto_pase).await {\n"
+        "                self.send_login_error(crate::cripto_licencia::MENSAJE_BLOQUEO).await;\n"
+        "                sleep(1.).await;\n"
+        "                return false;\n"
+        "            }",
+        "El celular valida el pase de cada conexión",
+    )
+    reemplazar_una_vez(
+        conexion,
+        r"async fn on_close\(&mut self, reason: &str, lock: bool\) \{",
+        "async fn on_close(&mut self, reason: &str, lock: bool) {\n"
+        "        // CRIPTO v2.3: el celular registra el fin de la sesión.\n"
+        "        #[cfg(target_os = \"android\")]\n"
+        "        if self.authorized {\n"
+        "            crate::cripto_licencia::avisar_fin_sesion(self.lr.my_id.clone());\n"
+        "        }",
+        "El celular avisa el fin de la sesión",
+    )
+
+
+def aplicar_windows_licencia() -> None:
+    """v2.3 — Línea «Activar licencia de técnico» bajo «Dar soporte» (solo Windows)."""
+    origen = RAIZ / "cripto" / "flutter" / "cripto_licencia.dart"
+    if not origen.exists():
+        error(f"Falta el archivo {origen.relative_to(RAIZ)}.")
+    destino = RAIZ / "flutter" / "lib" / "cripto"
+    destino.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(origen, destino / "cripto_licencia.dart")
+    ok("Pantalla de licencia del técnico copiada")
+
+    conexion = RAIZ / "flutter" / "lib" / "desktop" / "pages" / "connection_page.dart"
+    reemplazar_una_vez(
+        conexion,
+        r"(?m)^import '\.\./\.\./cripto/cripto_tecnico\.dart';$",
+        "import '../../cripto/cripto_tecnico.dart';\nimport '../../cripto/cripto_licencia.dart';",
+        "Importación de la licencia del técnico",
+    )
+    reemplazar_una_vez(
+        conexion,
+        r"const CriptoPanelTecnico\(\),",
+        "const CriptoPanelTecnico(),\n            const CriptoLicenciaTecnico(),",
+        "Línea de licencia bajo «Dar soporte»",
+    )
+
+
 def main() -> None:
     windows = "--windows" in sys.argv[1:]
     print(f"[CRIPTO] Aplicando marca CRIPTO Soporte ({'Windows' if windows else 'Android'})…")
     servidor, llave = leer_secretos()
     aplicar_servidor(servidor, llave, NOMBRE_INTERNO_WINDOWS if windows else NOMBRE_APP)
+    aplicar_licencia()  # v2.3 — pases de licencia (Android valida, Windows pide)
     if windows:
         aplicar_windows()
     else:
