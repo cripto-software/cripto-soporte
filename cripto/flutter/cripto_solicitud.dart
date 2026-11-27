@@ -2,7 +2,7 @@
 // 📁 RUTA : cripto/flutter/cripto_solicitud.dart
 //          (al compilar se copia a flutter/lib/cripto/cripto_solicitud.dart)
 // 📌 ARCHIVO: cripto_solicitud.dart
-// 📝 RESUMEN: Reemplaza la ventana «¿Aceptas?» de RustDesk. Cada
+// 📝 RESUMEN: Reemplaza la ventana «¿Aceptas?» original del motor de conexión. Cada
 //             conexión la acepta SIEMPRE el dueño del celular y elige el
 //             rol: Técnico (ve y controla) o Acompañante (solo mira: se le
 //             apagan teclado, táctil, portapapeles y archivos SOLO a esa

@@ -20,6 +20,7 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  26/11/2026  Versión inicial.
+//   v1.1  27/11/2026  El ID del equipo se envía como «idSoporte» (nombres CRIPTO).
 // ============================================================
 
 import 'dart:convert';
@@ -158,7 +159,7 @@ class _VentanaActivarState extends State<_VentanaActivar> {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'codigo': codigo,
-              'rustdeskId': miId,
+              'idSoporte': miId,
               'nombreTecnico': nombre,
               'correo': _correo.text.trim(),
               'nombreEquipo': Platform.localHostname,

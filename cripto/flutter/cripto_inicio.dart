@@ -425,7 +425,7 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
 
 /// Reglas de seguridad de CRIPTO que se aplican al abrir la app:
 /// toda conexión se acepta con un toque (nunca entra nadie solo con la
-/// contraseña) y no se pide la carpeta de registros de RustDesk.
+/// contraseña) y no se pide la carpeta de registros del motor de conexión.
 void criptoAplicarSeguridad() {
   if (gFFI.serverModel.approveMode != 'click') {
     bind.mainSetOption(key: kOptionApproveMode, value: 'click');

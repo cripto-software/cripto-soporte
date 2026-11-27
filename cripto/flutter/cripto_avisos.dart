@@ -5,7 +5,7 @@
 // 📝 RESUMEN: Avisos de CRIPTO Soporte que exige Google Play
 //             ("divulgación destacada") y que protegen al cliente:
 //             1) CriptoAvisoSeguridad: reemplaza el aviso de estafas
-//                de RustDesk antes de compartir la pantalla.
+//                del motor original antes de compartir la pantalla.
 //             2) criptoAvisoAccesibilidad: explica el uso del
 //                permiso de Accesibilidad antes de abrir Ajustes.
 //             Ninguno se puede saltar: el permiso solo se pide si
@@ -20,7 +20,7 @@
 //   v1.1  24/11/2026  (v1.2 de la app) El teléfono ya no se corta en dos
 //                     líneas; botones del aviso de Accesibilidad a lo ancho
 //                     y alineados; criptoPrepararCarpetas reemplaza las dos
-//                     preguntas de carpetas de RustDesk (registros y
+//                     preguntas de carpetas del motor original (registros y
 //                     archivos) por la carpeta propia de la app, sin
 //                     preguntar.
 // ============================================================
@@ -260,7 +260,7 @@ class _CriptoAvisoSeguridadState extends State<CriptoAvisoSeguridad> {
 
 // ============================================================
 // 2) Divulgación destacada del permiso de Accesibilidad
-//    (reemplaza al diálogo de RustDesk antes de abrir Ajustes)
+//    (reemplaza al diálogo original antes de abrir Ajustes)
 // ============================================================
 void criptoAvisoAccesibilidad(FFI ffi) {
   debugPrint('[CRIPTO] Aviso de Accesibilidad mostrado');
@@ -325,7 +325,7 @@ void criptoAvisoAccesibilidad(FFI ffi) {
 
 // ============================================================
 // 3) Carpetas sin preguntas (v1.2 de la app)
-//    RustDesk preguntaba dónde guardar sus registros y qué carpeta
+//    El motor original preguntaba dónde guardar sus registros y qué carpeta
 //    podía ver el técnico. CRIPTO usa siempre la carpeta propia de la
 //    app: el técnico nunca ve fotos, documentos ni descargas.
 // ============================================================
