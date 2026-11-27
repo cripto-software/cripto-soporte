@@ -107,6 +107,15 @@
 #                     licencia de técnico» bajo «Dar soporte». Sin licencia
 #                     el soporte entre PC funciona igual que antes. Se agrega
 #                     el campo cripto_pase (número 50) a LoginRequest.
+#   v2.4  27/11/2026  Windows: bienvenida de CRIPTO (cripto_instalar.dart) al
+#                     abrir el programa: mensaje de confianza sobre la Ley de
+#                     Protección de Datos, aceptación obligatoria de Términos
+#                     de uso y Política de privacidad (pc-green.com/cripto-soporte)
+#                     e invitación a instalar («Instalar ahora» / «Usar sin
+#                     instalar»). La pantalla de instalación enlaza a los
+#                     términos de CRIPTO (antes a rustdesk.com) y la tarjeta
+#                     rosada de «instalar» pasa a los colores CRIPTO con texto
+#                     propio. Android no cambia.
 # ============================================================
 
 import os
@@ -665,6 +674,8 @@ def aplicar_windows() -> None:
     aplicar_windows_publicidad()
     # 8) v2.3 — Activación de la licencia de técnico (bajo «Dar soporte»).
     aplicar_windows_licencia()
+    # 9) v2.4 — Bienvenida, términos y pantalla de instalación de CRIPTO.
+    aplicar_windows_instalacion()
 
     # 5) v1.5 — El servidor fijo es privado: sin límites de calidad de servidor público.
     reemplazar_una_vez(
@@ -899,6 +910,72 @@ def aplicar_windows_licencia() -> None:
         "const CriptoPanelTecnico(),\n            const CriptoLicenciaTecnico(),",
         "Línea de licencia bajo «Dar soporte»",
     )
+
+
+def aplicar_windows_instalacion() -> None:
+    """v2.4 — Bienvenida con términos (LOPDP) e instalación con la marca CRIPTO (solo Windows)."""
+    origen = RAIZ / "cripto" / "flutter" / "cripto_instalar.dart"
+    if not origen.exists():
+        error(f"Falta el archivo {origen.relative_to(RAIZ)}.")
+    destino = RAIZ / "flutter" / "lib" / "cripto"
+    destino.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(origen, destino / "cripto_instalar.dart")
+    ok("Bienvenida e instalación de CRIPTO copiadas")
+
+    lib = RAIZ / "flutter" / "lib"
+    inicio = lib / "desktop" / "pages" / "desktop_home_page.dart"
+    reemplazar_una_vez(
+        inicio,
+        r"(?m)^import '\.\./\.\./cripto/cripto_publicidad\.dart';$",
+        "import '../../cripto/cripto_publicidad.dart';\nimport '../../cripto/cripto_instalar.dart';",
+        "Importación de la bienvenida CRIPTO",
+    )
+    reemplazar_una_vez(
+        inicio,
+        r"if \(!isIncomingOnly\) const CriptoPanelPublicidad\(\),",
+        "if (!isIncomingOnly) const CriptoPanelPublicidad(),\n"
+        "      if (!isIncomingOnly) const CriptoAvisoInstalacion(),",
+        "Bienvenida con términos al abrir el programa",
+    )
+    # Tarjeta «instalar» con los colores CRIPTO (antes rosada).
+    reemplazar_una_vez(
+        inicio,
+        r"Color\.fromARGB\(255, 226, 66, 188\),\s*Color\.fromARGB\(255, 244, 114, 124\),",
+        "Color(0xFF2563EB),\n                  Color(0xFF1D4ED8),",
+        "Tarjeta de instalación con colores CRIPTO",
+    )
+
+    # Pantalla de instalación: el acuerdo lleva a los términos de CRIPTO.
+    reemplazar_una_vez(
+        lib / "desktop" / "pages" / "install_page.dart",
+        r"'https://rustdesk\.com/privacy\.html'\),(\s*child: Tooltip\(\s*message: )'https://rustdesk\.com/privacy\.html',",
+        "'https://pc-green.com/cripto-soporte/terminos'),\n"
+        "                            child: Tooltip(\n"
+        "                              message: 'https://pc-green.com/cripto-soporte/terminos',",
+        "Acuerdo de la instalación con los términos de CRIPTO",
+    )
+
+    # Textos en español sin mencionar RustDesk.
+    es = RAIZ / "src" / "lang" / "es.rs"
+    for clave, texto, descripcion in [
+        ("install_tip",
+         "Está usando CRIPTO Soporte sin instalar. Instálelo para recibir soporte "
+         "siempre, incluso después de reiniciar, y con los permisos completos de Windows.",
+         "Texto de la tarjeta «instalar»"),
+        ("agreement_tip",
+         "Al instalar, usted acepta los Términos de uso y la Política de privacidad "
+         "de CRIPTO Soporte (PCG S.A.S.).",
+         "Texto del acuerdo en la instalación"),
+        ("End-user license agreement",
+         "Términos de uso y Política de privacidad",
+         "Enlace del acuerdo en la instalación"),
+    ]:
+        reemplazar_una_vez(
+            es,
+            r'\("' + re.escape(clave) + r'", "[^"]*"\),',
+            f'("{clave}", "{texto}"),',
+            descripcion,
+        )
 
 
 def main() -> None:
