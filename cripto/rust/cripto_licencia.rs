@@ -23,6 +23,7 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  26/11/2026  Versión inicial (pases de un solo uso).
+//   v1.1  27/11/2026  El ID del técnico se envía como «idSoporte» (nombres CRIPTO).
 // ============================================================
 
 use hbb_common::{
@@ -130,7 +131,7 @@ pub async fn pedir_pase(destino_id: &str) -> String {
         return String::new();
     }
     let cuerpo = json!({
-        "rustdeskId": id_puro(&Config::get_id()),
+        "idSoporte": id_puro(&Config::get_id()),
         "destinoId": id_puro(destino_id),
         "destino": "CELULAR"
     });
