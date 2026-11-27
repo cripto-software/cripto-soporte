@@ -116,6 +116,15 @@
 #                     términos de CRIPTO (antes a rustdesk.com) y la tarjeta
 #                     rosada de «instalar» pasa a los colores CRIPTO con texto
 #                     propio. Android no cambia.
+#   v2.5  27/11/2026  Windows: estado de conexión claro y sin «RustDesk».
+#                     Si el programa no llega al servidor CRIPTO, la barra
+#                     de abajo lo dice en rojo («Sin conexión con el
+#                     servidor CRIPTO. Revise su internet o su antivirus.»)
+#                     y «La ID no existe» explica al técnico qué pedirle al
+#                     cliente. «Conexión a la red RustDesk…» pasa a
+#                     «Conectando con el servidor CRIPTO…». Las reglas del
+#                     Firewall de Windows ya las crea la instalación del
+#                     motor. Android no cambia.
 # ============================================================
 
 import os
@@ -676,6 +685,8 @@ def aplicar_windows() -> None:
     aplicar_windows_licencia()
     # 9) v2.4 — Bienvenida, términos y pantalla de instalación de CRIPTO.
     aplicar_windows_instalacion()
+    # 10) v2.5 — Estado de conexión claro (servidor CRIPTO, internet, antivirus).
+    aplicar_windows_conexion()
 
     # 5) v1.5 — El servidor fijo es privado: sin límites de calidad de servidor público.
     reemplazar_una_vez(
@@ -969,6 +980,51 @@ def aplicar_windows_instalacion() -> None:
         ("End-user license agreement",
          "Términos de uso y Política de privacidad",
          "Enlace del acuerdo en la instalación"),
+    ]:
+        reemplazar_una_vez(
+            es,
+            r'\("' + re.escape(clave) + r'", "[^"]*"\),',
+            f'("{clave}", "{texto}"),',
+            descripcion,
+        )
+
+
+def aplicar_windows_conexion() -> None:
+    """v2.5 — Estado de conexión claro y sin mencionar RustDesk (solo Windows)."""
+    # La barra de abajo se pone en rojo cuando no hay conexión con el servidor.
+    reemplazar_una_vez(
+        RAIZ / "flutter" / "lib" / "desktop" / "pages" / "connection_page.dart",
+        r": translate\('Ready'\),\s*style: TextStyle\(fontSize: em\),",
+        ": translate('Ready'),\n"
+        "      style: TextStyle(\n"
+        "          fontSize: em,\n"
+        "          fontWeight: stateGlobal.svcStatus.value == SvcStatus.notReady\n"
+        "              ? FontWeight.w600\n"
+        "              : FontWeight.normal,\n"
+        "          color: stateGlobal.svcStatus.value == SvcStatus.notReady\n"
+        "              ? const Color(0xFFDC2626)\n"
+        "              : null), // CRIPTO v2.5: sin conexión en rojo",
+        "Estado «sin conexión» en rojo",
+    )
+
+    es = RAIZ / "src" / "lang" / "es.rs"
+    for clave, texto, descripcion in [
+        ("connecting_status",
+         "Conectando con el servidor CRIPTO...",
+         "Texto «conectando»"),
+        ("not_ready_status",
+         "Sin conexión con el servidor CRIPTO. Revise su internet o su antivirus.",
+         "Texto «sin conexión»"),
+        ("ID does not exist",
+         "Ese número no está conectado. Pida al cliente que abra CRIPTO Soporte "
+         "y espere a que abajo diga «Listo».",
+         "Texto «La ID no existe»"),
+        ("Failed to connect to rendezvous server",
+         "No se pudo conectar con el servidor CRIPTO. Revise su internet o su antivirus.",
+         "Texto «sin servidor»"),
+        ("Remote desktop is offline",
+         "El equipo del cliente está apagado o sin internet.",
+         "Texto «equipo desconectado»"),
     ]:
         reemplazar_una_vez(
             es,
