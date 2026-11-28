@@ -24,11 +24,17 @@
 #                     rustdesk.exe salía «Windows no puede encontrar el
 #                     archivo C:\Program Files\CRIPTO-Soporte\CRIPTO-Soporte.exe».
 #                     Verifica que el .exe exista antes de empaquetar.
+#   v1.2  28/11/2026  Nombre «CRIPTO-Support» (aplicar_marca.py v2.7 cambió el
+#                     nombre interno y aquí seguía «CRIPTO-Soporte»: la
+#                     instalación buscaba CRIPTO-Support.exe y no existía).
+#                     Nuevo paso que DETIENE la compilación si el nombre de
+#                     este archivo y el de aplicar_marca.py no coinciden, para
+#                     que no vuelva a pasar.
 # Mantenimiento: tras cada «Sync fork», si la compilación falla,
 # copiar aquí las versiones del bloque env de flutter-build.yml.
 # ============================================================
 
-name: CRIPTO Soporte - Windows
+name: CRIPTO Support - Windows
 
 on:
   workflow_dispatch:
@@ -49,9 +55,9 @@ env:
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
   VERSION: "1.5.3"
-  NOMBRE_EXE: "CRIPTO-Soporte"
+  NOMBRE_EXE: "CRIPTO-Support"  # v1.2 (antes CRIPTO-Soporte)
   # v1.1 — Debe ser IGUAL a NOMBRE_INTERNO_WINDOWS de cripto/aplicar_marca.py.
-  NOMBRE_INTERNO: "CRIPTO-Soporte"
+  NOMBRE_INTERNO: "CRIPTO-Support"  # v1.2 (antes CRIPTO-Soporte)
 
 jobs:
   generate-bridge:
@@ -86,6 +92,16 @@ jobs:
         run: |
           python3 --version
           pip3 install pillow numpy
+
+      - name: Verificar que el nombre interno coincida (v1.2)
+        shell: bash
+        run: |
+          if grep -q "^NOMBRE_INTERNO_WINDOWS = \"${NOMBRE_INTERNO}\"" cripto/aplicar_marca.py; then
+            echo "[CRIPTO] Nombre interno correcto: ${NOMBRE_INTERNO}"
+          else
+            echo "::error::El nombre interno de este workflow (${NOMBRE_INTERNO}) no coincide con NOMBRE_INTERNO_WINDOWS de cripto/aplicar_marca.py."
+            exit 1
+          fi
 
       - name: Aplicar marca CRIPTO (Windows)
         env:
