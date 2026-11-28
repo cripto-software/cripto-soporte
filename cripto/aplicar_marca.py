@@ -125,6 +125,26 @@
 #                     «Conectando con el servidor CRIPTO…». Las reglas del
 #                     Firewall de Windows ya las crea la instalación del
 #                     motor. Android no cambia.
+#   v2.6  27/11/2026  Windows, fase 1 de funciones Pro (cripto_pro.dart):
+#                     la llamada de voz, la transferencia de archivos y la
+#                     grabación de la sesión piden licencia de técnico; sin
+#                     ella aparece la ventana «Función Pro» (Conocer CRIPTO
+#                     Pro / Activar licencia de técnico / Seguir sin Pro) y
+#                     una insignia PRO en el menú. La sesión nunca se corta.
+#                     Textos en español sin «RustDesk» (se mantiene el
+#                     crédito AGPL «Con tecnología de RustDesk») y aviso
+#                     antiestafa propio de CRIPTO. Android no cambia.
+#   v2.7  27/11/2026  Idiomas (cripto_idioma.dart + cripto_textos_en.dart),
+#                     hecho para crecer: español (base) e inglés, botón
+#                     «Idioma» (automático / Español / English) en Windows y
+#                     en el celular; agregar otro idioma es sumar un archivo
+#                     cripto_textos_XX.dart, que se copia solo. Textos del
+#                     motor en inglés sin «RustDesk» y con los mensajes
+#                     propios de CRIPTO. Nombre del producto «CRIPTO Support»
+#                     en todo (visible e interno; el interno de Windows es
+#                     «CRIPTO-Support»). El identificador de Android
+#                     (com.criptosoftware.soporte) NO cambia. Avisos de
+#                     Android (arranque y canal) en el idioma del celular.
 # ============================================================
 
 import os
@@ -135,9 +155,9 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
 
-NOMBRE_APP = "CRIPTO Soporte"
-NOMBRE_SERVICIO = "CRIPTO Soporte Control"
-NOMBRE_INTERNO_WINDOWS = "CRIPTO-Soporte"  # v1.5 — el instalador de Windows no acepta espacios
+NOMBRE_APP = "CRIPTO Support"  # v2.7 (antes «CRIPTO Soporte»)
+NOMBRE_SERVICIO = "CRIPTO Support Control"  # v2.7
+NOMBRE_INTERNO_WINDOWS = "CRIPTO-Support"  # v2.7 (antes «CRIPTO-Soporte»). v1.5 — el instalador de Windows no acepta espacios
 APP_ID_ORIGINAL = "com.carriez.flutter_hbb"
 APP_ID_CRIPTO = "com.criptosoftware.soporte"
 COLOR_FONDO_ICONO = "#FFFFFF"  # v2.1 — fondo blanco del ícono con audífonos (antes #0B1029)
@@ -270,19 +290,24 @@ def aplicar_android() -> None:
     reemplazar_una_vez(
         servicio,
         r'description = "RustDesk Service Channel"',
-        'description = "Avisos de las sesiones de soporte de CRIPTO Software"',
+        'description = if (java.util.Locale.getDefault().language == "es") '
+        '"Avisos de las sesiones de soporte de CRIPTO Software" '
+        'else "CRIPTO Software support session notices"',  # v2.7 — según idioma
         "Descripción del canal de notificaciones",
     )
     reemplazar_una_vez(
         kotlin / "FloatingWindowService.kt",
         r'translate\("Show RustDesk"\)',
-        f'"Abrir {NOMBRE_APP}"',
+        # v2.7 — Texto del motor: «Mostrar CRIPTO Support» / «Show CRIPTO Support».
+        'translate("Show RustDesk")',
         "Menú del botón flotante",
     )
     reemplazar_una_vez(
         kotlin / "BootReceiver.kt",
         r'"RustDesk is Open"',
-        f'"{NOMBRE_APP} está activo"',
+        # v2.7 — Según el idioma del celular.
+        f'(if (java.util.Locale.getDefault().language == "es") "{NOMBRE_APP} está activo" '
+        f'else "{NOMBRE_APP} is running")',
         "Aviso de arranque del celular",
     )
 
@@ -608,7 +633,7 @@ def _logo_con_nombre(logo, color_texto, color_soporte):
     lienzo.paste(logo.resize((108, 108), Image.LANCZOS), (6, 6), logo.resize((108, 108), Image.LANCZOS))
     dibujo = ImageDraw.Draw(lienzo)
     dibujo.text((132, 8), "CRIPTO", font=_fuente(56, True), fill=color_texto)
-    dibujo.text((134, 66), "Soporte", font=_fuente(40, False), fill=color_soporte)
+    dibujo.text((134, 66), "Support", font=_fuente(40, False), fill=color_soporte)  # v2.7
     # v2.0 — Se recorta el espacio vacío de la derecha para que el logo quede
     # centrado en la barra izquierda (antes se veía corrido a la izquierda).
     caja = lienzo.getbbox()
@@ -687,6 +712,7 @@ def aplicar_windows() -> None:
     aplicar_windows_instalacion()
     # 10) v2.5 — Estado de conexión claro (servidor CRIPTO, internet, antivirus).
     aplicar_windows_conexion()
+    aplicar_windows_pro()  # v2.6
 
     # 5) v1.5 — El servidor fijo es privado: sin límites de calidad de servidor público.
     reemplazar_una_vez(
@@ -970,12 +996,12 @@ def aplicar_windows_instalacion() -> None:
     es = RAIZ / "src" / "lang" / "es.rs"
     for clave, texto, descripcion in [
         ("install_tip",
-         "Está usando CRIPTO Soporte sin instalar. Instálelo para recibir soporte "
+         "Está usando CRIPTO Support sin instalar. Instálelo para recibir soporte "
          "siempre, incluso después de reiniciar, y con los permisos completos de Windows.",
          "Texto de la tarjeta «instalar»"),
         ("agreement_tip",
          "Al instalar, usted acepta los Términos de uso y la Política de privacidad "
-         "de CRIPTO Soporte (PCG S.A.S.).",
+         "de CRIPTO Support (PCG S.A.S.).",
          "Texto del acuerdo en la instalación"),
         ("End-user license agreement",
          "Términos de uso y Política de privacidad",
@@ -1016,7 +1042,7 @@ def aplicar_windows_conexion() -> None:
          "Sin conexión con el servidor CRIPTO. Revise su internet o su antivirus.",
          "Texto «sin conexión»"),
         ("ID does not exist",
-         "Ese número no está conectado. Pida al cliente que abra CRIPTO Soporte "
+         "Ese número no está conectado. Pida al cliente que abra CRIPTO Support "
          "y espere a que abajo diga «Listo».",
          "Texto «La ID no existe»"),
         ("Failed to connect to rendezvous server",
@@ -1034,12 +1060,258 @@ def aplicar_windows_conexion() -> None:
         )
 
 
+def aplicar_windows_pro() -> None:
+    """v2.6 — Funciones Pro con licencia y textos sin «RustDesk» (solo Windows)."""
+    origen = RAIZ / "cripto" / "flutter" / "cripto_pro.dart"
+    if not origen.exists():
+        error(f"Falta el archivo {origen.relative_to(RAIZ)}.")
+    destino = RAIZ / "flutter" / "lib" / "cripto"
+    destino.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(origen, destino / "cripto_pro.dart")
+    ok("Funciones Pro de CRIPTO copiadas")
+
+    lib = RAIZ / "flutter" / "lib"
+
+    # Transferencia de archivos: se revisa en connect() (cubre todos los botones).
+    comun = lib / "common.dart"
+    reemplazar_una_vez(
+        comun,
+        r"(?m)^import 'models/platform_model\.dart';$",
+        "import 'models/platform_model.dart';\nimport 'cripto/cripto_pro.dart';",
+        "Importación de las funciones Pro (común)",
+    )
+    reemplazar_una_vez(
+        comun,
+        r"String loginMethod = ''\}\) async \{\s*if \(id == ''\) return;",
+        "String loginMethod = ''}) async {\n"
+        "  if (id == '') return;\n"
+        "  // CRIPTO v2.6: la transferencia de archivos es una función Pro.\n"
+        "  if (isFileTransfer &&\n"
+        "      !await criptoPermitePro(context, CriptoFuncionPro.archivos)) {\n"
+        "    return;\n"
+        "  }",
+        "Transferencia de archivos con licencia de técnico",
+    )
+
+    # Barra de la sesión: llamada de voz y grabación.
+    barra = lib / "desktop" / "widgets" / "remote_toolbar.dart"
+    reemplazar_una_vez(
+        barra,
+        r"(?m)^import '\.\./\.\./cripto/cripto_tecnico\.dart';$",
+        "import '../../cripto/cripto_tecnico.dart';\nimport '../../cripto/cripto_pro.dart';\n"
+        "import '../../cripto/cripto_idioma.dart';",  # v2.7
+        "Importación de las funciones Pro (barra de la sesión)",
+    )
+    reemplazar_una_vez(
+        barra,
+        r"child: Text\(translate\('Voice call'\)\),\s*ffi: widget\.ffi,\s*"
+        r"onPressed: \(\) =>\s*bind\.sessionRequestVoiceCall\(sessionId: widget\.ffi\.sessionId\),",
+        "child: criptoTextoConInsignia(\n"
+        "          translate('Voice call'), CriptoFuncionPro.llamada),\n"
+        "      ffi: widget.ffi,\n"
+        "      onPressed: () async {\n"
+        "        // CRIPTO v2.6: la llamada de voz es una función Pro.\n"
+        "        if (await criptoPermitePro(context, CriptoFuncionPro.llamada)) {\n"
+        "          bind.sessionRequestVoiceCall(sessionId: widget.ffi.sessionId);\n"
+        "        }\n"
+        "      },",
+        "Llamada de voz con licencia de técnico",
+    )
+    reemplazar_una_vez(
+        barra,
+        r"if \(recordingModel\.start \|\| await criptoConfirmarGrabacion\(context\)\) \{",
+        "// CRIPTO v2.6: grabar es una función Pro y exige el permiso del cliente.\n"
+        "        if (recordingModel.start ||\n"
+        "            (await criptoPermitePro(context, CriptoFuncionPro.grabacion) &&\n"
+        "                context.mounted &&\n"
+        "                await criptoConfirmarGrabacion(context))) {",
+        "Grabación con licencia de técnico y permiso del cliente",
+    )
+    reemplazar_una_vez(
+        barra,
+        r"\? 'Stop session recording'\s*: 'Start session recording',",
+        "? 'Stop session recording'\n"
+        "          : criptoPermiteFuncion(CriptoFuncionPro.grabacion)\n"
+        "              ? 'Start session recording'\n"
+        "              : criptoT('Grabar la sesión (función Pro)'),",  # v2.7
+        "Aviso «función Pro» en el botón de grabar",
+    )
+
+    # Menú de la sesión: insignia PRO en «Transferir archivos».
+    menu = lib / "common" / "widgets" / "toolbar.dart"
+    reemplazar_una_vez(
+        menu,
+        r"(?m)^import 'package:flutter_hbb/common\.dart';$",
+        "import 'package:flutter_hbb/common.dart';\nimport 'package:flutter_hbb/cripto/cripto_pro.dart';",
+        "Importación de las funciones Pro (menú de la sesión)",
+    )
+    reemplazar_una_vez(
+        menu,
+        r"child: Text\(translate\('Transfer file'\)\),\s*onPressed: \(\) => connectWithToken\(isFileTransfer: true\)\),",
+        "child: criptoTextoConInsignia(\n"
+        "              translate('Transfer file'), CriptoFuncionPro.archivos),\n"
+        "          onPressed: () => connectWithToken(isFileTransfer: true)),",
+        "Insignia PRO en «Transferir archivos»",
+    )
+
+    # Textos en español: CRIPTO Soporte en lugar de RustDesk.
+    es = RAIZ / "src" / "lang" / "es.rs"
+    textos_propios = {
+        "Keep RustDesk background service": "Mantener CRIPTO Support activo en segundo plano",
+        "android_input_permission_tip2":
+            "Vaya a la configuración del sistema que se abrirá a continuación, entre en "
+            "[Servicios instalados] y active el servicio de CRIPTO Support.",
+        "still_click_uac_tip":
+            "El usuario remoto todavía debe pulsar «Sí» en la ventana de Control de "
+            "cuentas de usuario (UAC) de CRIPTO Support.",
+        "upgrade_rustdesk_server_pro_to_{}_tip":
+            "Actualice el servidor CRIPTO a la versión {} o superior.",
+        "upgrade_remote_rustdesk_client_to_{}_tip":
+            "Actualice CRIPTO Support a la versión {} o superior en el equipo remoto.",
+        "allow-only-conn-window-open-tip":
+            "Permitir la conexión solo si la ventana de CRIPTO Support está abierta",
+        "server-oss-not-support-tip": "NOTA: El servidor CRIPTO no incluye esta característica.",
+        "floating_window_tip": "Ayuda a mantener CRIPTO Support activo en segundo plano",
+        # Aviso antiestafa propio de CRIPTO.
+        "scam_title": "¡Cuidado: podría ser una estafa!",
+        "scam_text1":
+            "Si alguien que usted NO conoce le llamó y le pidió abrir CRIPTO Support o "
+            "darle su número, no lo haga y cuelgue. PCG S.A.S. nunca le pedirá claves, "
+            "códigos del banco ni dinero.",
+        "scam_text2":
+            "Ante cualquier duda, comuníquese con CRIPTO Support por WhatsApp al "
+            "098 566 6807 antes de aceptar.",
+    }
+    texto = es.read_text(encoding="utf-8")
+    linea = re.compile(r'(?m)^(\s*\(")((?:[^"\\]|\\.)*)(", ")((?:[^"\\]|\\.)*)("\),)$')
+    cambiadas = 0
+
+    def _cambiar(m: re.Match) -> str:
+        nonlocal cambiadas
+        clave, valor = m.group(2), m.group(4)
+        if clave == "powered_by_me":  # crédito obligatorio de la licencia AGPL
+            return m.group(0)
+        if clave in textos_propios:
+            nuevo = textos_propios[clave]
+        elif "RustDesk" in valor:
+            nuevo = (valor.replace("RustDesk Server Pro", "el servidor CRIPTO")
+                          .replace("RustDesk OSS", "CRIPTO")
+                          .replace("RustDesk", "CRIPTO Support"))
+        else:
+            return m.group(0)
+        if nuevo == valor:
+            return m.group(0)
+        cambiadas += 1
+        return f"{m.group(1)}{clave}{m.group(3)}{nuevo}{m.group(5)}"
+
+    texto = linea.sub(_cambiar, texto)
+    faltan = [c for c in textos_propios if f'("{c}", ' not in texto]
+    if faltan:
+        error(f"No se encontraron estos textos en es.rs: {', '.join(faltan)}")
+    restantes = [l.strip() for l in texto.splitlines()
+                 if "RustDesk" in l.split('", "', 1)[-1] and "powered_by_me" not in l]
+    if restantes:
+        error("Quedan textos con «RustDesk» en es.rs:\n  " + "\n  ".join(restantes))
+    es.write_text(texto, encoding="utf-8")
+    ok(f"Textos en español con CRIPTO Support ({cambiadas} cambiados) y aviso antiestafa propio")
+
+
+def aplicar_idiomas() -> None:
+    """v2.7 — Idiomas de CRIPTO (Windows y Android), hecho para crecer."""
+    origen = RAIZ / "cripto" / "flutter"
+    destino = RAIZ / "flutter" / "lib" / "cripto"
+    destino.mkdir(parents=True, exist_ok=True)
+    nucleo = origen / "cripto_idioma.dart"
+    if not nucleo.exists():
+        error(f"Falta el archivo {nucleo.relative_to(RAIZ)}.")
+    archivos = [nucleo] + sorted(origen.glob("cripto_textos_*.dart"))
+    for archivo in archivos:
+        shutil.copyfile(archivo, destino / archivo.name)
+    ok("Idiomas copiados: " + ", ".join(a.name for a in archivos))
+
+    # Textos del motor en inglés: CRIPTO Support y los mensajes propios.
+    en = RAIZ / "src" / "lang" / "en.rs"
+    textos_propios_en = {
+        "connecting_status": "Connecting to the CRIPTO server...",
+        "not_ready_status": "No connection to the CRIPTO server. Check your internet or your antivirus.",
+        "install_tip": "You are using CRIPTO Support without installing it. Install it to always "
+                       "receive support, even after restarting, with full Windows permissions.",
+        "agreement_tip": "By installing, you accept the Terms of use and the Privacy policy "
+                         "of CRIPTO Support (PCG S.A.S.).",
+        "android_input_permission_tip2": "Go to the system settings page that opens next, enter "
+                                         "[Installed services] and turn on the CRIPTO Support service.",
+        "upgrade_rustdesk_server_pro_to_{}_tip": "Please upgrade the CRIPTO server to version {} or newer.",
+        "upgrade_remote_rustdesk_client_to_{}_tip": "Please upgrade CRIPTO Support to version {} or newer "
+                                                    "on the remote computer.",
+        "server-oss-not-support-tip": "NOTE: The CRIPTO server does not include this feature.",
+        "scam_title": "Careful: this could be a scam!",
+        "scam_text1": "If someone you DON'T know called you and asked you to open CRIPTO Support or to "
+                      "give them your number, don't do it and hang up. PCG S.A.S. will never ask "
+                      "for passwords, bank codes or money.",
+        "scam_text2": "If in doubt, contact CRIPTO Support on WhatsApp at +593 98 566 6807 before accepting.",
+    }
+    # Claves que en inglés se muestran tal cual (no están en en.rs): se agregan.
+    textos_nuevos_en = {
+        "ID does not exist": "That number is not connected. Ask the customer to open CRIPTO Support "
+                             "and wait until it says “Ready” at the bottom.",
+        "Failed to connect to rendezvous server": "Could not connect to the CRIPTO server. "
+                                                  "Check your internet or your antivirus.",
+        "Remote desktop is offline": "The customer's computer is turned off or has no internet.",
+        "End-user license agreement": "Terms of use and Privacy policy",
+    }
+    texto = en.read_text(encoding="utf-8")
+    linea = re.compile(r'(?m)^(\s*\(")((?:[^"\\]|\\.)*)(", ")((?:[^"\\]|\\.)*)("\),)$')
+    cambiadas = 0
+
+    def _cambiar(m: re.Match) -> str:
+        nonlocal cambiadas
+        clave, valor = m.group(2), m.group(4)
+        if clave == "powered_by_me":  # crédito obligatorio de la licencia AGPL
+            return m.group(0)
+        if clave in textos_propios_en:
+            nuevo = textos_propios_en[clave]
+        elif "RustDesk" in valor:
+            nuevo = (valor.replace("RustDesk Server Pro", "the CRIPTO server")
+                          .replace("RustDesk server OSS", "The CRIPTO server")
+                          .replace("RustDesk", "CRIPTO Support"))
+        else:
+            return m.group(0)
+        if nuevo == valor:
+            return m.group(0)
+        cambiadas += 1
+        return f"{m.group(1)}{clave}{m.group(3)}{nuevo}{m.group(5)}"
+
+    texto = linea.sub(_cambiar, texto)
+    # Claves con «RustDesk» que en inglés salían tal cual («Show RustDesk»…).
+    es = (RAIZ / "src" / "lang" / "es.rs").read_text(encoding="utf-8")
+    for clave in re.findall(r'(?m)^\s*\("((?:[^"\\]|\\.)*RustDesk(?:[^"\\]|\\.)*)", ', es):
+        if clave not in textos_propios_en and f'("{clave}", ' not in texto:
+            textos_nuevos_en[clave] = clave.replace("RustDesk", "CRIPTO Support")
+    faltan = [c for c in textos_propios_en if f'("{c}", ' not in texto]
+    if faltan:
+        error(f"No se encontraron estos textos en en.rs: {', '.join(faltan)}")
+    nuevas = "".join(f'        ("{c}", "{v}"),\n' for c, v in textos_nuevos_en.items()
+                     if f'("{c}", ' not in texto)
+    ancla = re.search(r'(?m)^\s*\("connecting_status", "[^"]*"\),\n', texto)
+    if not ancla:
+        error("No se encontró dónde agregar los textos en en.rs.")
+    texto = texto[:ancla.end()] + nuevas + texto[ancla.end():]
+    restantes = [l.strip() for l in texto.splitlines()
+                 if "RustDesk" in l.split('", "', 1)[-1] and "powered_by_me" not in l]
+    if restantes:
+        error("Quedan textos con «RustDesk» en en.rs:\n  " + "\n  ".join(restantes))
+    en.write_text(texto, encoding="utf-8")
+    ok(f"Textos del motor en inglés con CRIPTO Support ({cambiadas} cambiados, "
+       f"{nuevas.count(chr(10))} agregados)")
+
+
 def main() -> None:
     windows = "--windows" in sys.argv[1:]
-    print(f"[CRIPTO] Aplicando marca CRIPTO Soporte ({'Windows' if windows else 'Android'})…")
+    print(f"[CRIPTO] Aplicando marca CRIPTO Support ({'Windows' if windows else 'Android'})…")
     servidor, llave = leer_secretos()
     aplicar_servidor(servidor, llave, NOMBRE_INTERNO_WINDOWS if windows else NOMBRE_APP)
     aplicar_licencia()  # v2.3 — pases de licencia (Android valida, Windows pide)
+    aplicar_idiomas()  # v2.7 — español e inglés (Windows y Android)
     if windows:
         aplicar_windows()
     else:
