@@ -16,6 +16,8 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  25/11/2026  Versión inicial (fase 2 de CRIPTO Soporte Windows).
+//   v1.1  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
+//                     y nombre «CRIPTO Support». Botón «Idioma» junto a «Dar soporte».
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -23,6 +25,7 @@ import 'package:uuid/uuid.dart';
 
 import '../consts.dart';
 import '../models/platform_model.dart';
+import 'cripto_idioma.dart';
 
 /// Opción local (compartida por todas las ventanas del programa) con el rol
 /// elegido para las próximas conexiones: 'tecnico' o 'acompanante'.
@@ -60,28 +63,25 @@ Future<bool> criptoConfirmarGrabacion(BuildContext context) async {
     context: context,
     barrierDismissible: false,
     builder: (ctx) => AlertDialog(
-      title: const Text('¿El cliente aceptó la grabación?',
+      title: Text(criptoT('¿El cliente aceptó la grabación?'),
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-      content: const SizedBox(
+      content: SizedBox(
         width: 420,
         child: Text(
-          'Antes de grabar, pregunta al cliente si acepta que esta sesión '
-          'quede grabada. La grabación se guarda en este computador por '
-          '90 días y luego se elimina. Si no acepta, la sesión continúa sin '
-          'grabar.',
+          criptoT('Antes de grabar, pregunta al cliente si acepta que esta sesión quede grabada. La grabación se guarda en este computador por 90 días y luego se elimina. Si no acepta, la sesión continúa sin grabar.'),
           style: TextStyle(fontSize: 14, height: 1.5),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('No aceptó'),
+          child: Text(criptoT('No aceptó')),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
               backgroundColor: kCriptoTecAzul, foregroundColor: Colors.white),
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Sí, aceptó: grabar'),
+          child: Text(criptoT('Sí, aceptó: grabar')),
         ),
       ],
     ),
@@ -122,13 +122,18 @@ class _CriptoPanelTecnicoState extends State<CriptoPanelTecnico> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Dar soporte',
-              style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w800, color: colorTexto)),
+          Row(children: [
+            Expanded(
+              child: Text(criptoT('Dar soporte'),
+                  style: TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.w800, color: colorTexto)),
+            ),
+            // Botón de idioma (automático / Español / English).
+            const CriptoBotonIdioma(),
+          ]),
           const SizedBox(height: 4),
           Text(
-              'Pide al cliente el número que aparece en su CRIPTO Soporte, '
-              'escríbelo abajo y pulsa Conectar.',
+              criptoT('Pide al cliente el número que aparece en su CRIPTO Support, escríbelo abajo y pulsa Conectar.'),
               style: TextStyle(fontSize: 13, color: colorTexto)),
           const SizedBox(height: 12),
           Row(
@@ -136,8 +141,8 @@ class _CriptoPanelTecnicoState extends State<CriptoPanelTecnico> {
               Expanded(
                 child: _OpcionRol(
                   icono: Icons.build_outlined,
-                  titulo: 'Técnico',
-                  detalle: 'Ver y controlar el equipo',
+                  titulo: criptoT('Técnico'),
+                  detalle: criptoT('Ver y controlar el equipo'),
                   elegida: _rol == kCriptoRolTecnico,
                   colorTexto: colorTexto,
                   onTap: () => _elegir(kCriptoRolTecnico),
@@ -147,8 +152,8 @@ class _CriptoPanelTecnicoState extends State<CriptoPanelTecnico> {
               Expanded(
                 child: _OpcionRol(
                   icono: Icons.visibility_outlined,
-                  titulo: 'Acompañante',
-                  detalle: 'Solo mirar, sin tocar nada',
+                  titulo: criptoT('Acompañante'),
+                  detalle: criptoT('Solo mirar, sin tocar nada'),
                   elegida: _rol == kCriptoRolAcompanante,
                   colorTexto: colorTexto,
                   onTap: () => _elegir(kCriptoRolAcompanante),

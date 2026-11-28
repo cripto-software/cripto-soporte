@@ -29,6 +29,8 @@
 //                     Los dos anuncios oscuros de la v1.0 (CRIPTO ERP y
 //                     PCGreen) se reemplazan por estos seis. El aviso de
 //                     bienvenida sigue igual, con letra más liviana.
+//   v2.1  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
+//                     y nombre «CRIPTO Support».
 // ============================================================
 
 import 'dart:async';
@@ -38,6 +40,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/platform_model.dart';
 import '../models/state_model.dart';
+import 'cripto_idioma.dart';
 
 /// Página a la que llevan todos los enlaces de publicidad.
 const String kCriptoUrlPagina = 'https://pc-green.com';
@@ -77,7 +80,7 @@ Future<void> criptoAbrirPagina() async {
 /// v2.0 — Abre el chat de WhatsApp de soporte y ventas.
 Future<void> criptoAbrirWhatsApp() async {
   final url = Uri.parse('https://wa.me/$kCriptoWhatsApp'
-      '?text=${Uri.encodeComponent(kCriptoWhatsAppMensaje)}');
+      '?text=${Uri.encodeComponent(criptoT(kCriptoWhatsAppMensaje))}');
   try {
     await launchUrl(url, mode: LaunchMode.externalApplication);
     debugPrint('[CRIPTO] Publicidad: se abrió el chat de WhatsApp');
@@ -254,7 +257,7 @@ class _CriptoPanelPublicidadState extends State<CriptoPanelPublicidad> {
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Text(a.etiqueta,
+                              child: Text(criptoT(a.etiqueta),
                                   style: TextStyle(
                                       color: azulTexto,
                                       fontSize: 11,
@@ -264,7 +267,7 @@ class _CriptoPanelPublicidadState extends State<CriptoPanelPublicidad> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(a.titulo,
+                        Text(criptoT(a.titulo),
                             style: TextStyle(
                                 color: texto,
                                 fontSize: 13,
@@ -287,7 +290,7 @@ class _CriptoPanelPublicidadState extends State<CriptoPanelPublicidad> {
                                 ),
                                 const SizedBox(width: 6),
                                 Expanded(
-                                  child: Text(p,
+                                  child: Text(criptoT(p),
                                       style: TextStyle(
                                           color: texto,
                                           fontSize: 12,
@@ -297,7 +300,7 @@ class _CriptoPanelPublicidadState extends State<CriptoPanelPublicidad> {
                             ),
                           ),
                         const SizedBox(height: 4),
-                        Text('Ver más en pc-green.com →',
+                        Text(criptoT('Ver más en pc-green.com →'),
                             style: TextStyle(
                                 color: azulTexto,
                                 fontSize: 12,
@@ -316,7 +319,7 @@ class _CriptoPanelPublicidadState extends State<CriptoPanelPublicidad> {
             children: List.generate(
               _anuncios.length,
               (i) => Tooltip(
-                message: _anuncios[i].etiqueta,
+                message: criptoT(_anuncios[i].etiqueta),
                 child: GestureDetector(
                   onTap: () => setState(() => _actual = i),
                   child: AnimatedContainer(
@@ -366,7 +369,7 @@ class _CriptoPanelPublicidadState extends State<CriptoPanelPublicidad> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Soporte y ventas por WhatsApp',
+                          Text(criptoT('Soporte y ventas por WhatsApp'),
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(color: texto, fontSize: 11)),
                           Text(kCriptoWhatsAppVisible,
@@ -444,7 +447,7 @@ class _AvisoBienvenida extends StatelessWidget {
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => const SizedBox.shrink()),
                     const SizedBox(height: 16),
-                    const Text('El sistema de los negocios que crecen en Ecuador',
+                    Text(criptoT('El sistema de los negocios que crecen en Ecuador'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             color: Color(0xFFE2E8F0), fontSize: 13, height: 1.5)),
@@ -458,23 +461,23 @@ class _AvisoBienvenida extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Gracias por usar CRIPTO Soporte',
+                      Text(criptoT('Gracias por usar CRIPTO Support'),
                           style: TextStyle(
                               color: kCriptoPubAzul,
                               fontSize: 12,
                               fontWeight: FontWeight.w500)),
                       const SizedBox(height: 10),
-                      const Text('¿Tu negocio todavía factura a mano?',
+                      Text(criptoT('¿Tu negocio todavía factura a mano?'),
                           style: TextStyle(
                               color: kCriptoPubTexto,
                               fontSize: 22,
                               fontWeight: FontWeight.w600,
                               height: 1.25)),
                       const SizedBox(height: 14),
-                      for (final b in const [
-                        'Factura electrónica autorizada por el SRI',
-                        'Inventario, compras y contabilidad al día',
-                        'Soporte técnico incluido con CRIPTO Soporte',
+                      for (final b in [
+                        criptoT('Factura electrónica autorizada por el SRI'),
+                        criptoT('Inventario, compras y contabilidad al día'),
+                        criptoT('Soporte técnico incluido con CRIPTO Support'),
                       ])
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
@@ -503,7 +506,7 @@ class _AvisoBienvenida extends StatelessWidget {
                                 Navigator.of(context).pop();
                                 criptoAbrirPagina();
                               },
-                              child: const Text('Quiero conocerlo',
+                              child: Text(criptoT('Quiero conocerlo'),
                                   style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500)),
@@ -515,7 +518,7 @@ class _AvisoBienvenida extends StatelessWidget {
                           height: 44,
                           child: OutlinedButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Ahora no',
+                            child: Text(criptoT('Ahora no'),
                                 style: TextStyle(
                                     color: kCriptoPubTexto, fontSize: 14)),
                           ),

@@ -15,6 +15,8 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  24/11/2026  Versión inicial (v1.2 de la app).
+//   v1.1  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
+//                     y nombre «CRIPTO Support».
 // ============================================================
 
 import 'dart:async';
@@ -27,6 +29,7 @@ import '../models/server_model.dart';
 import 'cripto_acompanantes.dart';
 import 'cripto_comun.dart';
 import 'cripto_lopdp.dart';
+import 'cripto_idioma.dart';
 
 const String kRolTecnico = 'tecnico';
 const String kRolAcompanante = 'acompanante';
@@ -39,7 +42,7 @@ class CriptoSesion {
 
   static String rolDe(int connId) => roles[connId] ?? kRolTecnico;
   static String etiquetaDe(Client c) =>
-      etiquetas[c.id] ?? (c.name.isNotEmpty ? c.name : 'N.º ${c.peerId}');
+      etiquetas[c.id] ?? (c.name.isNotEmpty ? c.name : criptoT('N.º {id}', {'id': c.peerId}));
 
   /// Apaga el control solo a esa conexión: el acompañante únicamente mira.
   static void _soloMirar(int connId) {
@@ -151,14 +154,14 @@ void criptoSolicitudConexion(ServerModel modelo, Client client) {
       client.isFileTransfer || client.isTerminal || client.isViewCamera;
   final tecnicoBloqueado =
       cfg.exigeAcompanante && !CriptoSesion.hayAcompananteDeLista(cfg);
-  final nombre = client.name.isNotEmpty ? client.name : 'Sin nombre';
+  final nombre = client.name.isNotEmpty ? client.name : criptoT('Sin nombre');
   final que = client.isFileTransfer
-      ? 'Quiere pasar archivos a tu celular.'
+      ? criptoT('Quiere pasar archivos a tu celular.')
       : client.isTerminal
-          ? 'Quiere abrir una terminal en tu celular.'
+          ? criptoT('Quiere abrir una terminal en tu celular.')
           : client.isViewCamera
-              ? 'Quiere ver tu cámara.'
-              : 'Quiere ver tu pantalla. ¿Cómo lo dejas entrar?';
+              ? criptoT('Quiere ver tu cámara.')
+              : criptoT('Quiere ver tu pantalla. ¿Cómo lo dejas entrar?');
   debugPrint('[CRIPTO] Solicitud de conexión ${client.id} '
       '(de lista: ${persona != null}, bloqueo técnico: $tecnicoBloqueado)');
 
@@ -167,12 +170,12 @@ void criptoSolicitudConexion(ServerModel modelo, Client client) {
       close();
       modelo.sendLoginResponse(client, true);
       CriptoSesion.roles[client.id] = kRolTecnico;
-      CriptoSesion.etiquetas[client.id] = '$nombre · Técnico';
+      CriptoSesion.etiquetas[client.id] = '$nombre · ${criptoT('Técnico')}';
       await CriptoRegistro.agregar(
           evento: 'Aceptado como técnico',
           id: client.peerId,
           nombre: nombre,
-          rol: 'Técnico');
+          rol: criptoT('Técnico'));
     }
 
     Future<void> acompanante() async {
@@ -180,14 +183,14 @@ void criptoSolicitudConexion(ServerModel modelo, Client client) {
       modelo.sendLoginResponse(client, true);
       CriptoSesion.marcarAcompanante(client.id);
       final etiqueta = persona != null
-          ? '${persona.nombre} · ${persona.rol}'
-          : '$nombre · Acompañante';
+          ? '${persona.nombre} · ${criptoT(persona.rol)}'
+          : '$nombre · ${criptoT('Acompañante')}';
       CriptoSesion.etiquetas[client.id] = etiqueta;
       await CriptoRegistro.agregar(
           evento: 'Aceptado como acompañante (solo mira)',
           id: client.peerId,
           nombre: persona?.nombre ?? nombre,
-          rol: persona?.rol ?? 'Acompañante');
+          rol: persona?.rol ?? criptoT('Acompañante'));
     }
 
     Future<void> rechazar() async {
@@ -199,19 +202,19 @@ void criptoSolicitudConexion(ServerModel modelo, Client client) {
 
     final opTecnico = _opcion(
       icono: Icons.build_outlined,
-      titulo: 'Técnico',
+      titulo: criptoT('Técnico'),
       detalle: tecnicoBloqueado
-          ? 'Primero debe conectarse un acompañante de tu lista (obligatorio).'
-          : 'Puede ver y controlar mi celular.',
+          ? criptoT('Primero debe conectarse un acompañante de tu lista (obligatorio).')
+          : criptoT('Puede ver y controlar mi celular.'),
       alPulsar: tecnicoBloqueado ? null : tecnico,
       destacado: persona == null && !tecnicoBloqueado,
     );
     final opAcompanante = _opcion(
       icono: Icons.visibility_outlined,
-      titulo: 'Acompañante',
+      titulo: criptoT('Acompañante'),
       detalle: persona != null
-          ? '${persona.nombre} · ${persona.rol}. Solo puede mirar.'
-          : 'Solo puede mirar, no toca nada.',
+          ? '${persona.nombre} · ${criptoT(persona.rol)}. ${criptoT('Solo puede mirar.')}'
+          : criptoT('Solo puede mirar, no toca nada.'),
       alPulsar: acompanante,
       destacado: persona != null || tecnicoBloqueado,
     );
@@ -237,7 +240,7 @@ void criptoSolicitudConexion(ServerModel modelo, Client client) {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(nombre, style: kCriTitulo),
-                Text('N.º ${client.peerId}', style: kCriPequeno),
+                Text(criptoT('N.º {id}', {'id': client.peerId}), style: kCriPequeno),
               ],
             ),
           ),
@@ -261,11 +264,10 @@ void criptoSolicitudConexion(ServerModel modelo, Client client) {
             opAcompanante,
           ],
           const SizedBox(height: 12),
-          criptoBotonSecundario('Rechazar', rechazar, color: kCriptoRojo),
+          criptoBotonSecundario(criptoT('Rechazar'), rechazar, color: kCriptoRojo),
           const SizedBox(height: 12),
           Text(
-            'Si no conoces a esta persona, toca «Rechazar». CRIPTO nunca te pedirá claves del banco. '
-            'Soporte oficial: ${criptoSinCorte(kCriptoTelefono)}.',
+            criptoT('Si no conoces a esta persona, toca «Rechazar». CRIPTO nunca te pedirá claves del banco. Soporte oficial: {telefono}.', {'telefono': criptoSinCorte(kCriptoTelefono)}),
             style: kCriPequeno,
           ),
         ],

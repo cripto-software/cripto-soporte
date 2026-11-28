@@ -21,6 +21,13 @@
 // Historial
 //   v1.0  26/11/2026  Versión inicial.
 //   v1.1  27/11/2026  El ID del equipo se envía como «idSoporte» (nombres CRIPTO).
+//   v1.2  27/11/2026  Se guardan también los permisos de la licencia que envíe
+//                     el servidor (permiteAudio, permiteArchivos,
+//                     permiteGrabacion) para las funciones Pro (cripto_pro.dart).
+//                     Si el servidor no los envía, la licencia activa habilita
+//                     las tres funciones.
+//   v1.3  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
+//                     y nombre «CRIPTO Support».
 // ============================================================
 
 import 'dart:convert';
@@ -30,6 +37,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/platform_model.dart';
+import 'cripto_idioma.dart';
 
 const String kCriptoApiLicencia = 'https://api.criptosoftware.com/api/soporte/licencia';
 const String kCriptoOpcionCredencial = 'cripto-credencial';
@@ -75,7 +83,7 @@ class _CriptoLicenciaTecnicoState extends State<CriptoLicenciaTecnico> {
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            'Licencia de técnico activa'
+            '${criptoT('Licencia de técnico activa')}'
             '${plan.isNotEmpty ? ' · $plan' : ''}'
             '${empresa.isNotEmpty ? ' · $empresa' : ''}',
             style: TextStyle(fontSize: 12, color: colorTexto),
@@ -89,10 +97,10 @@ class _CriptoLicenciaTecnicoState extends State<CriptoLicenciaTecnico> {
           final activada = await criptoMostrarActivarLicencia(context);
           if (activada && mounted) setState(() {});
         },
-        child: Row(children: const [
+        child: Row(children: [
           Icon(Icons.key_outlined, size: 16, color: kCriptoLicAzul),
           SizedBox(width: 6),
-          Text('Activar licencia de técnico',
+          Text(criptoT('Activar licencia de técnico'),
               style: TextStyle(fontSize: 12, color: kCriptoLicAzul)),
         ]),
       );
@@ -140,11 +148,11 @@ class _VentanaActivarState extends State<_VentanaActivar> {
     final codigo = _codigo.text.trim().toUpperCase();
     final nombre = _nombre.text.trim();
     if (!RegExp(r'^(CRS-?)?[A-Z0-9]{4}-?[A-Z0-9]{4}-?[A-Z0-9]{4}$').hasMatch(codigo)) {
-      setState(() => _error = 'Escriba el código completo: CRS-XXXX-XXXX-XXXX.');
+      setState(() => _error = criptoT('Escriba el código completo: CRS-XXXX-XXXX-XXXX.'));
       return;
     }
     if (nombre.length < 3) {
-      setState(() => _error = 'Escriba el nombre del técnico.');
+      setState(() => _error = criptoT('Escriba el nombre del técnico.'));
       return;
     }
     setState(() {
@@ -171,7 +179,7 @@ class _VentanaActivarState extends State<_VentanaActivar> {
         final data = cuerpo['data'] as Map;
         final credencial = (data['credencial'] ?? '').toString();
         if (credencial.length != 64) {
-          throw Exception('Respuesta incompleta del servidor.');
+          throw Exception(criptoT('Respuesta incompleta del servidor.'));
         }
         await bind.mainSetLocalOption(key: kCriptoOpcionCredencial, value: credencial);
         await bind.mainSetLocalOption(
@@ -182,17 +190,21 @@ class _VentanaActivarState extends State<_VentanaActivar> {
               'nombreTecnico': data['nombreTecnico'],
               'nombreEmpresa': data['nombreEmpresa'],
               'fechaFin': data['fechaFin']?.toString(),
+              // v1.2 — Permisos de las funciones Pro (null = permitido).
+              'permiteAudio': data['permiteAudio'],
+              'permiteArchivos': data['permiteArchivos'],
+              'permiteGrabacion': data['permiteGrabacion'],
             }));
         debugPrint('[CRIPTO] Licencia de técnico activada en este equipo');
         if (mounted) Navigator.of(context).pop(true);
         return;
       }
       setState(() => _error = (cuerpo is Map ? cuerpo['message'] : null)?.toString() ??
-          'No se pudo activar la licencia (${resp.statusCode}).');
+          criptoT('No se pudo activar la licencia ({codigo}).', {'codigo': resp.statusCode}));
     } catch (e) {
       debugPrint('[CRIPTO] Error al activar la licencia: ${e.runtimeType}');
       setState(() => _error =
-          'No se pudo conectar con CRIPTO. Revise su internet e intente de nuevo.');
+          criptoT('No se pudo conectar con CRIPTO. Revise su internet e intente de nuevo.'));
     } finally {
       if (mounted) setState(() => _enviando = false);
     }
@@ -208,7 +220,7 @@ class _VentanaActivarState extends State<_VentanaActivar> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Activar licencia de técnico',
+      title: Text(criptoT('Activar licencia de técnico'),
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
       content: SizedBox(
         width: 380,
@@ -216,9 +228,8 @@ class _VentanaActivarState extends State<_VentanaActivar> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Escriba el código de licencia que le entregó CRIPTO. '
-              'La licencia queda activada solo en este equipo.',
+            Text(
+              criptoT('Escriba el código de licencia que le entregó CRIPTO. La licencia queda activada solo en este equipo.'),
               style: TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -226,20 +237,20 @@ class _VentanaActivarState extends State<_VentanaActivar> {
               controller: _codigo,
               enabled: !_enviando,
               textCapitalization: TextCapitalization.characters,
-              decoration: _campo('Código de licencia', 'CRS-XXXX-XXXX-XXXX'),
+              decoration: _campo(criptoT('Código de licencia'), 'CRS-XXXX-XXXX-XXXX'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _nombre,
               enabled: !_enviando,
-              decoration: _campo('Nombre del técnico', 'Nombre y apellido'),
+              decoration: _campo(criptoT('Nombre del técnico'), criptoT('Nombre y apellido')),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _correo,
               enabled: !_enviando,
               keyboardType: TextInputType.emailAddress,
-              decoration: _campo('Correo (opcional)', 'tecnico@empresa.com'),
+              decoration: _campo(criptoT('Correo (opcional)'), 'tecnico@empresa.com'),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
@@ -251,7 +262,7 @@ class _VentanaActivarState extends State<_VentanaActivar> {
       actions: [
         TextButton(
           onPressed: _enviando ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancelar'),
+          child: Text(criptoT('Cancelar')),
         ),
         ElevatedButton(
           onPressed: _enviando ? null : _activar,
@@ -260,7 +271,7 @@ class _VentanaActivarState extends State<_VentanaActivar> {
               ? const SizedBox(
                   width: 16, height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('Activar', style: TextStyle(color: Colors.white)),
+              : Text(criptoT('Activar'), style: TextStyle(color: Colors.white)),
         ),
       ],
     );

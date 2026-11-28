@@ -21,6 +21,8 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  27/11/2026  Versión inicial (mockup aprobado el 26/11/2026).
+//   v1.1  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
+//                     y nombre «CRIPTO Support».
 // ============================================================
 
 import 'dart:io';
@@ -30,6 +32,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/platform_model.dart';
 import 'cripto_publicidad.dart';
+import 'cripto_idioma.dart';
 
 /// Cambiar esta versión obliga a todos a aceptar de nuevo.
 const String kCriptoTerminosVersion = '1.0';
@@ -156,9 +159,9 @@ class _VentanaBienvenidaState extends State<_VentanaBienvenida> {
               const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Bienvenido a CRIPTO Soporte',
+                  Text(criptoT('Bienvenido a CRIPTO Support'),
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: texto)),
-                  Text('Soporte remoto de PCG SAS, Quito – Ecuador',
+                  Text(criptoT('Soporte remoto de PCG SAS, Quito – Ecuador'),
                       style: TextStyle(fontSize: 13, color: texto)),
                 ]),
               ),
@@ -168,15 +171,12 @@ class _VentanaBienvenidaState extends State<_VentanaBienvenida> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                   color: kCriptoInsVerdeFondo, borderRadius: BorderRadius.circular(8)),
-              child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Icon(Icons.verified_user_outlined, color: kCriptoInsVerdeTexto, size: 20),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Su seguridad es nuestra prioridad. Cumplimos la Ley Orgánica de '
-                    'Protección de Datos Personales: nadie puede ver ni controlar su '
-                    'equipo sin que usted lo acepte, y usted puede terminar la sesión '
-                    'cuando quiera.',
+                    criptoT('Su seguridad es nuestra prioridad. Cumplimos la Ley Orgánica de Protección de Datos Personales: nadie puede ver ni controlar su equipo sin que usted lo acepte, y usted puede terminar la sesión cuando quiera.'),
                     style: TextStyle(fontSize: 13, height: 1.5, color: kCriptoInsVerdeTexto),
                   ),
                 ),
@@ -185,8 +185,7 @@ class _VentanaBienvenidaState extends State<_VentanaBienvenida> {
             if (!widget.instalado) ...[
               const SizedBox(height: 12),
               Text(
-                'Instale CRIPTO Soporte para tener acceso directo en el escritorio y '
-                'recibir soporte incluso después de reiniciar el equipo.',
+                criptoT('Instale CRIPTO Support para tener acceso directo en el escritorio y recibir soporte incluso después de reiniciar el equipo.'),
                 style: TextStyle(fontSize: 13, color: texto),
               ),
             ],
@@ -205,19 +204,19 @@ class _VentanaBienvenidaState extends State<_VentanaBienvenida> {
                   child: Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
-                      Text('He leído y acepto los ', style: TextStyle(fontSize: 13, color: texto)),
-                      _enlace('Términos de uso', kCriptoUrlTerminos),
-                      Text(' y la ', style: TextStyle(fontSize: 13, color: texto)),
-                      _enlace('Política de privacidad', kCriptoUrlPrivacidad),
+                      Text(criptoT('He leído y acepto los '), style: TextStyle(fontSize: 13, color: texto)),
+                      _enlace(criptoT('Términos de uso'), kCriptoUrlTerminos),
+                      Text(criptoT(' y la '), style: TextStyle(fontSize: 13, color: texto)),
+                      _enlace(criptoT('Política de privacidad'), kCriptoUrlPrivacidad),
                       Text('.', style: TextStyle(fontSize: 13, color: texto)),
                     ]),
                   ),
                 ),
               ]),
               if (_falta)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(left: 12),
-                  child: Text('Marque la casilla para continuar.',
+                  child: Text(criptoT('Marque la casilla para continuar.'),
                       style: TextStyle(fontSize: 13, color: kCriptoInsError)),
                 ),
             ],
@@ -232,7 +231,7 @@ class _VentanaBienvenidaState extends State<_VentanaBienvenida> {
                         backgroundColor: kCriptoInsAzul,
                         padding: const EdgeInsets.symmetric(vertical: 14)),
                     icon: const Icon(Icons.download_outlined, color: Colors.white, size: 18),
-                    label: const Text('Instalar ahora', style: TextStyle(color: Colors.white)),
+                    label: Text(criptoT('Instalar ahora'), style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -241,7 +240,7 @@ class _VentanaBienvenidaState extends State<_VentanaBienvenida> {
                     onPressed: _continuar,
                     style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14)),
-                    child: const Text('Usar sin instalar'),
+                    child: Text(criptoT('Usar sin instalar')),
                   ),
                 ),
               ] else
@@ -251,15 +250,15 @@ class _VentanaBienvenidaState extends State<_VentanaBienvenida> {
                     style: ElevatedButton.styleFrom(
                         backgroundColor: kCriptoInsAzul,
                         padding: const EdgeInsets.symmetric(vertical: 14)),
-                    child: const Text('Aceptar y continuar', style: TextStyle(color: Colors.white)),
+                    child: Text(criptoT('Aceptar y continuar'), style: TextStyle(color: Colors.white)),
                   ),
                 ),
             ]),
             const SizedBox(height: 8),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('¿Dudas? WhatsApp 098 566 6807', style: TextStyle(fontSize: 13, color: texto)),
+              Text(criptoT('¿Dudas? WhatsApp 098 566 6807'), style: TextStyle(fontSize: 13, color: texto)),
               if (!widget.aceptado)
-                TextButton(onPressed: _noAcepto, child: const Text('No acepto')),
+                TextButton(onPressed: _noAcepto, child: Text(criptoT('No acepto'))),
             ]),
           ],
         ),

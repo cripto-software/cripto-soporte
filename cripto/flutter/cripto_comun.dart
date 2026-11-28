@@ -14,6 +14,8 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  24/11/2026  Versión inicial (v1.2 de la app).
+//   v1.1  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
+//                     y nombre «CRIPTO Support».
 // ============================================================
 
 import 'dart:convert';
@@ -22,6 +24,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import 'cripto_lopdp.dart';
+import 'cripto_idioma.dart';
 
 /// Logo oficial; aplicar_marca.py lo copia a flutter/assets/ al compilar.
 const String kCriptoLogoAsset = 'assets/cripto_logo.png';
@@ -56,7 +59,7 @@ class CriptoLogo extends StatelessWidget {
         width: lado,
         height: lado,
         fit: BoxFit.cover,
-        semanticLabel: 'Logo CRIPTO',
+        semanticLabel: criptoT('Logo CRIPTO'),
         errorBuilder: (_, __, ___) => Container(
           width: lado,
           height: lado,
@@ -95,7 +98,7 @@ class CriptoEncabezado extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('CRIPTO Soporte',
+                Text(criptoT('CRIPTO Support'),
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,

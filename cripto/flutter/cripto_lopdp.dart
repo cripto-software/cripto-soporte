@@ -23,6 +23,8 @@
 //   v1.2  24/11/2026  Acompañantes (solo miran) y aceptación obligatoria
 //                     de cada conexión con un toque. El teléfono ya no se
 //                     corta en dos líneas.
+//   v1.3  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
+//                     y nombre «CRIPTO Support». Botón «Idioma» antes de aceptar. El texto en español es el que rige.
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -30,6 +32,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/platform_model.dart';
+import 'cripto_idioma.dart';
 
 // ---------- Datos del responsable (cambiar aquí si algo cambia) ----------
 const String kCriptoLopdpVersion = '1'; // Subir a '2' si cambia el texto: se vuelve a pedir.
@@ -123,20 +126,19 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
     final salir = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sin consentimiento no hay soporte', style: _titulo),
-        content: const Text(
-          'Para darte soporte remoto necesitamos tu autorización. '
-          'Puedes volver a abrir la app cuando quieras y aceptar.',
+        title: Text(criptoT('Sin consentimiento no hay soporte'), style: _titulo),
+        content: Text(
+          criptoT('Para darte soporte remoto necesitamos tu autorización. Puedes volver a abrir la app cuando quieras y aceptar.'),
           style: _cuerpo,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Volver', style: _cuerpoNegrita),
+            child: Text(criptoT('Volver'), style: _cuerpoNegrita),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Salir de la app', style: _cuerpoNegrita),
+            child: Text(criptoT('Salir de la app'), style: _cuerpoNegrita),
           ),
         ],
       ),
@@ -186,7 +188,7 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
             ? AppBar(
                 backgroundColor: kCriptoAzul,
                 foregroundColor: Colors.white,
-                title: const Text('Privacidad'),
+                title: Text(criptoT('Privacidad')),
               )
             : null,
         body: SafeArea(
@@ -197,19 +199,22 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                   width: double.infinity,
                   color: kCriptoAzul,
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(Icons.verified_user, size: 40, color: Colors.white),
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Tu privacidad es importante',
+                          criptoT('Tu privacidad es importante'),
                           style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white),
                         ),
                       ),
+                      // Elegir el idioma antes de aceptar.
+                      CriptoBotonIdioma(
+                          color: Colors.white, alCambiar: () => setState(() {})),
                     ],
                   ),
                 ),
@@ -219,102 +224,64 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Antes de usar CRIPTO Soporte, lee cómo cuidamos tus '
-                        'datos personales, según la Ley Orgánica de Protección '
-                        'de Datos Personales del Ecuador (LOPDP).',
+                      Text(
+                        criptoT('Antes de usar CRIPTO Support, lee cómo cuidamos tus datos personales, según la Ley Orgánica de Protección de Datos Personales del Ecuador (LOPDP).'),
                         style: _cuerpo,
                       ),
                       const SizedBox(height: 20),
                       _seccion(
                         Icons.business,
-                        '¿Quién es el responsable?',
-                        '$kCriptoResponsable, RUC $kCriptoRuc. '
-                            '$kCriptoDireccion. Correo: $kCriptoCorreo.',
+                        criptoT('¿Quién es el responsable?'),
+                        criptoT('{responsable}, RUC {ruc}. {direccion}. Correo: {correo}.', {'responsable': kCriptoResponsable, 'ruc': kCriptoRuc, 'direccion': kCriptoDireccion, 'correo': kCriptoCorreo}),
                       ),
                       _seccion(
                         Icons.phone_android,
-                        '¿Qué datos usamos?',
-                        'Solo durante una sesión de soporte que tú aceptes: '
-                            'la imagen de tu pantalla, el control remoto si lo '
-                            'autorizas, los archivos que decidas compartir, el '
-                            'número de identificación (ID) de la app, el modelo '
-                            'de tu celular y la dirección de conexión (IP).',
+                        criptoT('¿Qué datos usamos?'),
+                        criptoT('Solo durante una sesión de soporte que tú aceptes: la imagen de tu pantalla, el control remoto si lo autorizas, los archivos que decidas compartir, el número de identificación (ID) de la app, el modelo de tu celular y la dirección de conexión (IP).'),
                       ),
                       _seccion(
                         Icons.support_agent,
-                        '¿Para qué los usamos?',
-                        'Únicamente para darte soporte técnico: instalar, '
-                            'configurar o revisar aplicaciones cuando tú lo '
-                            'pides, y para capacitarte.',
+                        criptoT('¿Para qué los usamos?'),
+                        criptoT('Únicamente para darte soporte técnico: instalar, configurar o revisar aplicaciones cuando tú lo pides, y para capacitarte.'),
                       ),
                       _seccion(
                         Icons.group_outlined,
-                        'Acompañantes',
-                        'Tú aceptas cada conexión con un toque. Si quieres, '
-                            'puedes dejar entrar a un acompañante (por ejemplo '
-                            'tu hijo o el dueño de tu empresa): solo puede '
-                            'mirar, nunca controla, y queda registrado quién '
-                            'entró y cuándo.',
+                        criptoT('Acompañantes'),
+                        criptoT('Tú aceptas cada conexión con un toque. Si quieres, puedes dejar entrar a un acompañante (por ejemplo tu hijo o el dueño de tu empresa): solo puede mirar, nunca controla, y queda registrado quién entró y cuándo.'),
                       ),
                       _seccion(
                         Icons.public,
-                        'Servidor en otro país',
-                        'El servidor que conecta tu celular con el técnico está '
-                            'contratado con $kCriptoServidorProveedor y se '
-                            'encuentra en $kCriptoServidorPais. Ahí solo pasan '
-                            'los datos de conexión (ID, IP, fecha y hora); la '
-                            'imagen de tu pantalla viaja cifrada y no se guarda '
-                            'en el servidor. Al aceptar, autorizas esta '
-                            'transferencia internacional.',
+                        criptoT('Servidor en otro país'),
+                        criptoT('El servidor que conecta tu celular con el técnico está contratado con {proveedor} y se encuentra en {pais}. Ahí solo pasan los datos de conexión (ID, IP, fecha y hora); la imagen de tu pantalla viaja cifrada y no se guarda en el servidor. Al aceptar, autorizas esta transferencia internacional.', {'proveedor': kCriptoServidorProveedor, 'pais': criptoT(kCriptoServidorPais)}),
                       ),
                       _seccion(
                         Icons.videocam,
-                        'Grabación de la sesión (opcional)',
-                        'Antes de cada sesión el técnico te preguntará si '
-                            'deseas grabarla. Si no aceptas, no se graba. Si '
-                            'aceptas, la grabación se guarda $kCriptoDiasGrabacion '
-                            'días como respaldo para ti y para nosotros, y '
-                            'luego se elimina.',
+                        criptoT('Grabación de la sesión (opcional)'),
+                        criptoT('Antes de cada sesión el técnico te preguntará si deseas grabarla. Si no aceptas, no se graba. Si aceptas, la grabación se guarda {dias} días como respaldo para ti y para nosotros, y luego se elimina.', {'dias': kCriptoDiasGrabacion}),
                       ),
                       _seccion(
                         Icons.block,
-                        'Lo que nunca hacemos',
-                        'No vendemos ni compartimos tus datos con terceros. '
-                            'No entramos a tu celular sin que aceptes cada '
-                            'conexión. Nunca te pediremos claves del banco, '
-                            'códigos que te lleguen por mensaje ni dinero.',
+                        criptoT('Lo que nunca hacemos'),
+                        criptoT('No vendemos ni compartimos tus datos con terceros. No entramos a tu celular sin que aceptes cada conexión. Nunca te pediremos claves del banco, códigos que te lleguen por mensaje ni dinero.'),
                       ),
                       _seccion(
                         Icons.person_off,
-                        'Si no aceptas',
-                        'Aceptar es voluntario. Si no aceptas, no podrás usar '
-                            'la app ni recibir soporte remoto, pero puedes '
-                            'recibir ayuda por teléfono, correo o de forma '
-                            'presencial. No tomamos decisiones automáticas ni '
-                            'hacemos perfiles con tus datos: siempre te atiende '
-                            'una persona.',
+                        criptoT('Si no aceptas'),
+                        criptoT('Aceptar es voluntario. Si no aceptas, no podrás usar la app ni recibir soporte remoto, pero puedes recibir ayuda por teléfono, correo o de forma presencial. No tomamos decisiones automáticas ni hacemos perfiles con tus datos: siempre te atiende una persona.'),
                       ),
                       _seccion(
                         Icons.gavel,
-                        'Tus derechos',
-                        'Puedes pedir acceso, rectificación y actualización, '
-                            'eliminación, oposición, portabilidad y suspensión '
-                            'del tratamiento de tus datos escribiendo a '
-                            '$kCriptoCorreoDatos o llamando al ${kCriptoTelefono.replaceAll(' ', '\u00A0')}. '
-                            'Es gratis y te respondemos en máximo 15 días. '
-                            'También puedes acudir a la Superintendencia de '
-                            'Protección de Datos Personales.',
+                        criptoT('Tus derechos'),
+                        criptoT('Puedes pedir acceso, rectificación y actualización, eliminación, oposición, portabilidad y suspensión del tratamiento de tus datos escribiendo a {correo} o llamando al {telefono}. Es gratis y te respondemos en máximo 15 días. También puedes acudir a la Superintendencia de Protección de Datos Personales.', {'correo': kCriptoCorreoDatos, 'telefono': kCriptoTelefono.replaceAll(' ', '\u00A0')}),
                       ),
                       _seccion(
                         Icons.undo,
-                        'Retirar tu consentimiento',
-                        'Puedes retirarlo en cualquier momento escribiéndonos '
-                            'o desinstalando la app.',
+                        criptoT('Retirar tu consentimiento'),
+                        criptoT('Puedes retirarlo en cualquier momento escribiéndonos o desinstalando la app.'),
                       ),
                       InkWell(
                         onTap: _abrirPolitica,
-                        child: const Padding(
+                        child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 8),
                           child: Row(
                             children: [
@@ -323,7 +290,7 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                               SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'Leer la política de privacidad completa',
+                                  criptoT('Leer la política de privacidad completa'),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -357,15 +324,11 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                               onChanged: (v) =>
                                   setState(() => _marcado = v ?? false),
                             ),
-                            const Expanded(
+                            Expanded(
                               child: Padding(
                                 padding: EdgeInsets.only(top: 12),
                                 child: Text(
-                                  'He leído este aviso y la política de '
-                                  'privacidad, y acepto que PCG S.A.S. trate mis '
-                                  'datos personales para darme soporte técnico, '
-                                  'incluida su transferencia al servidor en '
-                                  '$kCriptoServidorPais.',
+                                  criptoT('He leído este aviso y la política de privacidad, y acepto que PCG S.A.S. trate mis datos personales para darme soporte técnico, incluida su transferencia al servidor en {pais}.', {'pais': criptoT(kCriptoServidorPais)}),
                                   style: _pequeno,
                                 ),
                               ),
@@ -388,7 +351,7 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8)),
                                 ),
-                                child: const Text('No acepto',
+                                child: Text(criptoT('No acepto'),
                                     style: _cuerpoNegrita),
                               ),
                             ),
@@ -405,7 +368,7 @@ class _CriptoConsentimientoPageState extends State<CriptoConsentimientoPage> {
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8)),
                                 ),
-                                child: const Text('Acepto',
+                                child: Text(criptoT('Acepto'),
                                     style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold)),

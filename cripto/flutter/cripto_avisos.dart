@@ -23,6 +23,8 @@
 //                     preguntas de carpetas del motor original (registros y
 //                     archivos) por la carpeta propia de la app, sin
 //                     preguntar.
+//   v1.2  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
+//                     y nombre «CRIPTO Support».
 // ============================================================
 
 import 'dart:async';
@@ -36,6 +38,7 @@ import '../models/platform_model.dart';
 import '../models/server_model.dart';
 import 'cripto_lopdp.dart';
 import '../utils/android_documents.dart';
+import 'cripto_idioma.dart';
 
 const TextStyle _titulo =
     TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kCriptoTexto);
@@ -151,12 +154,12 @@ class _CriptoAvisoSeguridadState extends State<CriptoAvisoSeguridad> {
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      title: const Row(
+      title: Row(
         children: [
           Icon(Icons.shield, size: 32, color: kCriptoAzul),
           SizedBox(width: 12),
           Expanded(
-              child: Text('Antes de compartir tu pantalla', style: _titulo)),
+              child: Text(criptoT('Antes de compartir tu pantalla'), style: _titulo)),
         ],
       ),
       content: SingleChildScrollView(
@@ -164,10 +167,8 @@ class _CriptoAvisoSeguridadState extends State<CriptoAvisoSeguridad> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Al iniciar, el técnico de CRIPTO Software podrá ver tu pantalla '
-              'para ayudarte. Tú decides cada conexión: siempre te pediremos '
-              'permiso y puedes cortarla cuando quieras.',
+            Text(
+              criptoT('Al iniciar, el técnico de CRIPTO Software podrá ver tu pantalla para ayudarte. Tú decides cada conexión: siempre te pediremos permiso y puedes cortarla cuando quieras.'),
               style: _cuerpo,
             ),
             const SizedBox(height: 16),
@@ -182,13 +183,13 @@ class _CriptoAvisoSeguridadState extends State<CriptoAvisoSeguridad> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       Icon(Icons.warning_amber_rounded,
                           size: 24, color: _rojoBorde),
                       SizedBox(width: 8),
                       Expanded(
-                        child: Text('Cuidado con las estafas',
+                        child: Text(criptoT('Cuidado con las estafas'),
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -198,18 +199,15 @@ class _CriptoAvisoSeguridadState extends State<CriptoAvisoSeguridad> {
                   ),
                   const SizedBox(height: 8),
                   _vineta(
-                      'Comparte tu ID y contraseña solo con un técnico de '
-                      'CRIPTO Software al que tú llamaste.',
+                      criptoT('Comparte tu ID y contraseña solo con un técnico de CRIPTO Software al que tú llamaste.'),
                       estilo: const TextStyle(
                           fontSize: 16, color: _rojoTexto, height: 1.4)),
                   _vineta(
-                      'Nunca te pediremos claves del banco, códigos que te '
-                      'lleguen por mensaje ni dinero.',
+                      criptoT('Nunca te pediremos claves del banco, códigos que te lleguen por mensaje ni dinero.'),
                       estilo: const TextStyle(
                           fontSize: 16, color: _rojoTexto, height: 1.4)),
                   _vineta(
-                      'Si alguien te llama diciendo ser del banco, de la '
-                      'policía u otra empresa y te pide usar esta app, cuelga.',
+                      criptoT('Si alguien te llama diciendo ser del banco, de la policía u otra empresa y te pide usar esta app, cuelga.'),
                       estilo: const TextStyle(
                           fontSize: 16, color: _rojoTexto, height: 1.4)),
                 ],
@@ -217,7 +215,7 @@ class _CriptoAvisoSeguridadState extends State<CriptoAvisoSeguridad> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Soporte oficial: $kCriptoCorreo · ${kCriptoTelefono.replaceAll(' ', '\u00A0')}',
+              criptoT('Soporte oficial: {correo} · {telefono}', {'correo': kCriptoCorreo, 'telefono': kCriptoTelefono.replaceAll(' ', '\u00A0')}),
               style: _pequeno,
             ),
             const SizedBox(height: 4),
@@ -230,8 +228,8 @@ class _CriptoAvisoSeguridadState extends State<CriptoAvisoSeguridad> {
                     activeColor: kCriptoAzul,
                     onChanged: (v) => setState(() => _noMostrar = v ?? false),
                   ),
-                  const Expanded(
-                      child: Text('No volver a mostrar', style: _pequeno)),
+                  Expanded(
+                      child: Text(criptoT('No volver a mostrar'), style: _pequeno)),
                 ],
               ),
             ),
@@ -240,12 +238,12 @@ class _CriptoAvisoSeguridadState extends State<CriptoAvisoSeguridad> {
               children: [
                 Expanded(
                   child: _botonSecundario(
-                      'Cancelar', () => Navigator.of(context).pop()),
+                      criptoT('Cancelar'), () => Navigator.of(context).pop()),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _botonPrincipal(
-                    bloqueado ? 'Entiendo ($_cuenta)' : 'Entiendo, iniciar',
+                    bloqueado ? criptoT('Entiendo ({n})', {'n': _cuenta}) : criptoT('Entiendo, iniciar'),
                     bloqueado ? null : _iniciar,
                   ),
                 ),
@@ -277,44 +275,38 @@ void criptoAvisoAccesibilidad(FFI ffi) {
     }
 
     return CustomAlertDialog(
-      title: const Row(
+      title: Row(
         children: [
           Icon(Icons.touch_app, size: 32, color: kCriptoAzul),
           SizedBox(width: 12),
-          Expanded(child: Text('Permiso de control remoto', style: _titulo)),
+          Expanded(child: Text(criptoT('Permiso de control remoto'), style: _titulo)),
         ],
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'CRIPTO Soporte usa el servicio de Accesibilidad de Android solo '
-            'para que el técnico pueda tocar y escribir en tu pantalla durante '
-            'una sesión de soporte que tú aceptaste.',
+          Text(
+            criptoT('CRIPTO Support usa el servicio de Accesibilidad de Android solo para que el técnico pueda tocar y escribir en tu pantalla durante una sesión de soporte que tú aceptaste.'),
             style: _cuerpo,
           ),
           const SizedBox(height: 12),
-          _vineta('Funciona solo mientras la sesión está activa, y tú puedes '
-              'cortarla en cualquier momento.'),
-          _vineta('No lee tus mensajes ni contraseñas, y no recopila datos en '
-              'segundo plano.'),
-          _vineta('No se usa para guardar ni compartir con terceros lo que '
-              'aparece en tu pantalla.'),
+          _vineta(criptoT('Funciona solo mientras la sesión está activa, y tú puedes cortarla en cualquier momento.')),
+          _vineta(criptoT('No lee tus mensajes ni contraseñas, y no recopila datos en segundo plano.')),
+          _vineta(criptoT('No se usa para guardar ni compartir con terceros lo que aparece en tu pantalla.')),
           const SizedBox(height: 8),
-          const Text(
-            'Al pulsar «Aceptar y abrir Ajustes», busca «CRIPTO Soporte Control» '
-            'y actívalo.',
+          Text(
+            criptoT('Al pulsar «Aceptar y abrir Ajustes», busca «CRIPTO Support Control» y actívalo.'),
             style: _cuerpoNegrita,
           ),
           const SizedBox(height: 16),
           SizedBox(
               width: double.infinity,
-              child: _botonPrincipal('Aceptar y abrir Ajustes', aceptar)),
+              child: _botonPrincipal(criptoT('Aceptar y abrir Ajustes'), aceptar)),
           const SizedBox(height: 8),
           SizedBox(
               width: double.infinity,
-              child: _botonSecundario('Cancelar', cancelar)),
+              child: _botonSecundario(criptoT('Cancelar'), cancelar)),
         ],
       ),
       onSubmit: aceptar,

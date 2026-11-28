@@ -16,6 +16,8 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  24/11/2026  Versión inicial (v1.2 de la app).
+//   v1.1  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
+//                     y nombre «CRIPTO Support».
 // ============================================================
 
 import 'dart:convert';
@@ -25,6 +27,7 @@ import 'package:flutter/material.dart';
 import '../models/platform_model.dart';
 import 'cripto_comun.dart';
 import 'cripto_lopdp.dart';
+import 'cripto_idioma.dart';
 
 const String _claveConfig = 'cripto-acompanantes';
 const String _claveRegistro = 'cripto-registro';
@@ -189,15 +192,15 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
   /// Si hay PIN del dueño, lo pide antes de cualquier cambio.
   Future<bool> _verificarPin() async {
     if (_cfg.pinHuella.isEmpty) return true;
-    final pin = await _pedirPin('PIN del dueño',
-        'Este celular tiene el acompañamiento protegido. Escribe el PIN del dueño.');
+    final pin = await _pedirPin(criptoT('PIN del dueño'),
+        criptoT('Este celular tiene el acompañamiento protegido. Escribe el PIN del dueño.'));
     if (pin == null) return false;
     final ok = criptoSha256(pin) == _cfg.pinHuella;
     if (!ok) {
       await CriptoRegistro.agregar(evento: 'PIN incorrecto al cambiar acompañantes');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('PIN incorrecto. No se hizo ningún cambio.')));
+            SnackBar(content: Text(criptoT('PIN incorrecto. No se hizo ningún cambio.'))));
       }
     }
     return ok;
@@ -222,8 +225,8 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
               keyboardType: TextInputType.number,
               maxLength: 8,
               style: kCriCuerpo,
-              decoration: const InputDecoration(
-                  labelText: 'PIN (4 a 8 números)',
+              decoration: InputDecoration(
+                  labelText: criptoT('PIN (4 a 8 números)'),
                   border: OutlineInputBorder()),
             ),
           ],
@@ -231,13 +234,13 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
         actions: [
           TextButton(
               onPressed: () => Navigator.of(c).pop(),
-              child: const Text('Cancelar', style: kCriCuerpoNegrita)),
+              child: Text(criptoT('Cancelar'), style: kCriCuerpoNegrita)),
           TextButton(
               onPressed: () {
                 final v = ctrl.text.trim();
                 if (RegExp(r'^\d{4,8}$').hasMatch(v)) Navigator.of(c).pop(v);
               },
-              child: const Text('Aceptar', style: kCriCuerpoNegrita)),
+              child: Text(criptoT('Aceptar'), style: kCriCuerpoNegrita)),
         ],
       ),
     );
@@ -258,8 +261,8 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
     final nombre = _nombre.text.trim();
     final id = criptoSoloDigitos(_id.text);
     if (nombre.isEmpty || id.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Escribe el nombre y el número de soporte completo.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(criptoT('Escribe el nombre y el número de soporte completo.'))));
       return;
     }
     if (!await _verificarPin()) return;
@@ -285,13 +288,13 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
   Future<void> _cambiarObligatorio(bool valor) async {
     if (valor) {
       if (_cfg.personas.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Primero agrega al dueño o a quien deba acompañar.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(criptoT('Primero agrega al dueño o a quien deba acompañar.'))));
         return;
       }
       if (_cfg.pinHuella.isEmpty) {
-        final pin = await _pedirPin('Crear PIN del dueño',
-            'Solo el dueño debe conocer este PIN. Sin él nadie podrá quitar el acompañamiento obligatorio.');
+        final pin = await _pedirPin(criptoT('Crear PIN del dueño'),
+            criptoT('Solo el dueño debe conocer este PIN. Sin él nadie podrá quitar el acompañamiento obligatorio.'));
         if (pin == null) return;
         _cfg.pinHuella = criptoSha256(pin);
       } else if (!await _verificarPin()) {
@@ -335,8 +338,8 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
           borderRadius: BorderRadius.circular(14)),
       clipBehavior: Clip.antiAlias,
       child: Row(children: [
-        opcion('personal', 'Personal'),
-        opcion('empresa', 'Empresa'),
+        opcion('personal', criptoT('Personal')),
+        opcion('empresa', criptoT('Empresa')),
       ]),
     );
   }
@@ -348,9 +351,9 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
       backgroundColor: kCriptoFondo,
       body: Column(
         children: [
-          CriptoEncabezado(subtitulo: 'Acompañantes', acciones: [
+          CriptoEncabezado(subtitulo: criptoT('Acompañantes'), acciones: [
             IconButton(
-              tooltip: 'Volver',
+              tooltip: criptoT('Volver'),
               icon: const Icon(Icons.close, color: Colors.white, size: 24),
               onPressed: () => Navigator.of(context).pop(),
             ),
@@ -359,15 +362,15 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                const Text('¿Para qué usas CRIPTO Soporte?',
+                Text(criptoT('¿Para qué usas CRIPTO Support?'),
                     style: kCriCuerpoNegrita),
                 const SizedBox(height: 8),
                 _selectorModo(),
                 const SizedBox(height: 12),
                 Text(
                   empresa
-                      ? 'Quién de la empresa acompaña el soporte de este celular. Solo mira, nunca toca.'
-                      : 'Alguien de confianza que pueda mirar tus sesiones. Solo mira, nunca toca.',
+                      ? criptoT('Quién de la empresa acompaña el soporte de este celular. Solo mira, nunca toca.')
+                      : criptoT('Alguien de confianza que pueda mirar tus sesiones. Solo mira, nunca toca.'),
                   style: kCriCuerpo,
                 ),
                 const SizedBox(height: 16),
@@ -383,14 +386,14 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('${p.nombre} · ${p.rol}',
+                              Text('${p.nombre} · ${criptoT(p.rol)}',
                                   style: kCriCuerpoNegrita),
-                              Text('Número ${p.id}', style: kCriPequeno),
+                              Text(criptoT('Número {id}', {'id': p.id}), style: kCriPequeno),
                             ],
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Quitar',
+                          tooltip: criptoT('Quitar'),
                           icon: const Icon(Icons.delete_outline,
                               size: 24, color: kCriptoRojo),
                           onPressed: () => _quitar(p),
@@ -401,17 +404,17 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
                 criptoTarjeta(Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Agregar persona', style: kCriCuerpoNegrita),
+                    Text(criptoT('Agregar persona'), style: kCriCuerpoNegrita),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _nombre,
                       style: kCriCuerpo,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                          labelText: 'Nombre', border: OutlineInputBorder()),
+                      decoration: InputDecoration(
+                          labelText: criptoT('Nombre'), border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
-                    Text(empresa ? 'Cargo en la empresa' : '¿Quién es para ti?',
+                    Text(empresa ? criptoT('Cargo en la empresa') : criptoT('¿Quién es para ti?'),
                         style: kCriPequeno),
                     const SizedBox(height: 8),
                     Wrap(
@@ -420,7 +423,7 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
                       children: [
                         for (final r in _roles)
                           ChoiceChip(
-                            label: Text(r,
+                            label: Text(criptoT(r),
                                 style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
@@ -441,12 +444,12 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
                       controller: _id,
                       style: kCriCuerpo,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                          labelText: 'Su número de CRIPTO Soporte',
+                      decoration: InputDecoration(
+                          labelText: criptoT('Su número de CRIPTO Support'),
                           border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
-                    criptoBotonPrincipal('Agregar', _agregar,
+                    criptoBotonPrincipal(criptoT('Agregar'), _agregar,
                         icono: Icons.person_add_alt_1),
                   ],
                 )),
@@ -458,10 +461,10 @@ class _CriptoAcompanantesPageState extends State<CriptoAcompanantesPage> {
                       value: _cfg.obligatorio,
                       activeColor: kCriptoAzulMarca,
                       onChanged: _cambiarObligatorio,
-                      title: const Text('Obligatorio en cada soporte',
+                      title: Text(criptoT('Obligatorio en cada soporte'),
                           style: kCriCuerpoNegrita),
-                      subtitle: const Text(
-                          'El técnico no puede entrar hasta que se conecte un acompañante de la lista. Se cambia solo con el PIN del dueño.',
+                      subtitle: Text(
+                          criptoT('El técnico no puede entrar hasta que se conecte un acompañante de la lista. Se cambia solo con el PIN del dueño.'),
                           style: kCriPequeno),
                     ),
                     relleno: const EdgeInsets.symmetric(horizontal: 16),
@@ -496,17 +499,17 @@ class CriptoRegistroPage extends StatelessWidget {
       backgroundColor: kCriptoFondo,
       body: Column(
         children: [
-          CriptoEncabezado(subtitulo: 'Historial de sesiones', acciones: [
+          CriptoEncabezado(subtitulo: criptoT('Historial de sesiones'), acciones: [
             IconButton(
-              tooltip: 'Volver',
+              tooltip: criptoT('Volver'),
               icon: const Icon(Icons.close, color: Colors.white, size: 24),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ]),
           Expanded(
             child: lista.isEmpty
-                ? const Center(
-                    child: Text('Todavía no hay sesiones registradas.',
+                ? Center(
+                    child: Text(criptoT('Todavía no hay sesiones registradas.'),
                         style: kCriCuerpo))
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
@@ -517,15 +520,15 @@ class CriptoRegistroPage extends StatelessWidget {
                       final r = lista[i];
                       final quien = [
                         if ('${r['nombre']}'.isNotEmpty) '${r['nombre']}',
-                        if ('${r['rol']}'.isNotEmpty) '${r['rol']}',
-                        if ('${r['id']}'.isNotEmpty) 'N.º ${r['id']}',
+                        if ('${r['rol']}'.isNotEmpty) criptoT('${r['rol']}'),
+                        if ('${r['id']}'.isNotEmpty) criptoT('N.º {id}', {'id': r['id']}),
                       ].join(' · ');
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${r['evento']}', style: kCriCuerpoNegrita),
+                            Text(criptoT('${r['evento']}'), style: kCriCuerpoNegrita),
                             if (quien.isNotEmpty)
                               Text(quien, style: kCriPequeno),
                             Text(_fecha('${r['fecha']}'), style: kCriPequeno),

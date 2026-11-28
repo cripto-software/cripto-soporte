@@ -19,6 +19,8 @@
 //   v1.1  24/11/2026  App v1.3: «Enviar por WhatsApp» abre directo el chat
 //                     de soporte de CRIPTO (098 566 6807) con el mensaje
 //                     listo; el cliente solo pulsa enviar.
+//   v1.2  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
+//                     y nombre «CRIPTO Support». Botón «Idioma» en el encabezado.
 // ============================================================
 
 import 'dart:async';
@@ -38,6 +40,7 @@ import 'cripto_avisos.dart';
 import 'cripto_comun.dart';
 import 'cripto_lopdp.dart';
 import 'cripto_solicitud.dart';
+import 'cripto_idioma.dart';
 
 class CriptoInicioPage extends StatefulWidget {
   const CriptoInicioPage({Key? key}) : super(key: key);
@@ -84,17 +87,17 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('¿Terminar la ayuda?', style: kCriTitulo),
-        content: const Text(
-            'Se desconectará a todos y nadie podrá ver tu pantalla.',
+        title: Text(criptoT('¿Terminar la ayuda?'), style: kCriTitulo),
+        content: Text(
+            criptoT('Se desconectará a todos y nadie podrá ver tu pantalla.'),
             style: kCriCuerpo),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(c).pop(false),
-              child: const Text('Seguir', style: kCriCuerpoNegrita)),
+              child: Text(criptoT('Seguir'), style: kCriCuerpoNegrita)),
           TextButton(
               onPressed: () => Navigator.of(c).pop(true),
-              child: const Text('Terminar', style: kCriCuerpoNegrita)),
+              child: Text(criptoT('Terminar'), style: kCriCuerpoNegrita)),
         ],
       ),
     );
@@ -122,7 +125,7 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
 
   Future<void> _enviarWhatsApp(String id) async {
     final texto = Uri.encodeComponent(
-        'Hola, necesito ayuda. Mi número de CRIPTO Soporte es $id');
+        criptoT('Hola, necesito ayuda. Mi número de CRIPTO Support es {id}', {'id': id}));
     try {
       // v1.1 — Directo al chat de soporte de CRIPTO.
       await launchUrl(
@@ -140,7 +143,7 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
 
   Widget _menu() {
     return PopupMenuButton<String>(
-      tooltip: 'Opciones',
+      tooltip: criptoT('Opciones'),
       icon: const Icon(Icons.more_vert, color: Colors.white, size: 28),
       onSelected: (v) {
         switch (v) {
@@ -158,18 +161,18 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
             break;
         }
       },
-      itemBuilder: (_) => const [
+      itemBuilder: (_) => [
         PopupMenuItem(
             value: 'acompanantes',
-            child: Text('Persona de confianza', style: kCriCuerpo)),
+            child: Text(criptoT('Persona de confianza'), style: kCriCuerpo)),
         PopupMenuItem(
             value: 'historial',
-            child: Text('Historial de sesiones', style: kCriCuerpo)),
+            child: Text(criptoT('Historial de sesiones'), style: kCriCuerpo)),
         PopupMenuItem(
             value: 'privacidad',
-            child: Text('Aviso de privacidad', style: kCriCuerpo)),
+            child: Text(criptoT('Aviso de privacidad'), style: kCriCuerpo)),
         PopupMenuItem(
-            value: 'avanzado', child: Text('Más opciones', style: kCriCuerpo)),
+            value: 'avanzado', child: Text(criptoT('Más opciones'), style: kCriCuerpo)),
       ],
     );
   }
@@ -178,15 +181,15 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
       children: [
-        const Text('¿Necesitas ayuda con tu celular?',
+        Text(criptoT('¿Necesitas ayuda con tu celular?'),
             style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
                 color: kCriptoTexto,
                 height: 1.2)),
         const SizedBox(height: 8),
-        const Text(
-            'Toca el botón y dile el número que aparece a tu técnico de CRIPTO.',
+        Text(
+            criptoT('Toca el botón y dile el número que aparece a tu técnico de CRIPTO.'),
             style: TextStyle(fontSize: 17, color: kCriptoTexto, height: 1.5)),
         const SizedBox(height: 20),
         SizedBox(
@@ -199,44 +202,44 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24)),
             ),
-            child: const Column(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.headset_mic, size: 64),
                 SizedBox(height: 12),
-                Text('Pedir ayuda',
+                Text(criptoT('Pedir ayuda'),
                     style:
                         TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
                 SizedBox(height: 4),
-                Text('Iniciar soporte remoto',
+                Text(criptoT('Iniciar soporte remoto'),
                     style: TextStyle(fontSize: 15, color: Color(0xFFDBEAFE))),
               ],
             ),
           ),
         ),
         const SizedBox(height: 20),
-        criptoTarjeta(const Row(
+        criptoTarjeta(Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(Icons.shield_outlined, size: 24, color: kCriptoAzul),
             SizedBox(width: 12),
             Expanded(
                 child: Text(
-                    'Nadie puede entrar sin que tú lo aceptes. Puedes cortar la ayuda cuando quieras.',
+                    criptoT('Nadie puede entrar sin que tú lo aceptes. Puedes cortar la ayuda cuando quieras.'),
                     style: kCriCuerpo)),
           ],
         )),
         const SizedBox(height: 20),
-        criptoBotonSecundario('Persona de confianza',
+        criptoBotonSecundario(criptoT('Persona de confianza'),
             () => _abrir(const CriptoAcompanantesPage())),
         const SizedBox(height: 16),
-        const Text.rich(
+        Text.rich(
           TextSpan(children: [
-            TextSpan(text: 'Un servicio de '),
+            TextSpan(text: criptoT('Un servicio de ')),
             TextSpan(
-                text: 'CRIPTO Software',
+                text: criptoT('CRIPTO Software'),
                 style: TextStyle(fontWeight: FontWeight.w800)),
-            TextSpan(text: ' · pc-green.com'),
+            TextSpan(text: criptoT(' · pc-green.com')),
           ]),
           textAlign: TextAlign.center,
           style: kCriPequeno,
@@ -250,7 +253,7 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
       children: [
-        const Text('Dile este número a tu técnico:',
+        Text(criptoT('Dile este número a tu técnico:'),
             style: TextStyle(
                 fontSize: 19, fontWeight: FontWeight.w700, color: kCriptoTexto)),
         const SizedBox(height: 16),
@@ -272,13 +275,13 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
                         fontFeatures: [FontFeature.tabularFigures()])),
               ),
               const SizedBox(height: 4),
-              const Text('Tu número de soporte', style: kCriPequeno),
+              Text(criptoT('Tu número de soporte'), style: kCriPequeno),
             ],
           ),
         ),
         const SizedBox(height: 16),
         criptoBotonPrincipal(
-            'Enviar por WhatsApp', id.isEmpty ? null : () => _enviarWhatsApp(id),
+            criptoT('Enviar por WhatsApp'), id.isEmpty ? null : () => _enviarWhatsApp(id),
             fondo: kCriptoVerde, icono: Icons.chat_outlined),
         const SizedBox(height: 16),
         Container(
@@ -286,19 +289,19 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
           decoration: BoxDecoration(
               color: const Color(0xFFEFF6FF),
               borderRadius: BorderRadius.circular(16)),
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.hourglass_top, size: 24, color: kCriptoAzul),
               SizedBox(width: 12),
               Expanded(
                   child: Text(
-                      'Cuando el técnico se conecte, te preguntaremos si lo aceptas.',
+                      criptoT('Cuando el técnico se conecte, te preguntaremos si lo aceptas.'),
                       style: kCriCuerpo)),
             ],
           ),
         ),
         const SizedBox(height: 24),
-        criptoBotonSecundario('Cancelar', () => _terminar(modelo)),
+        criptoBotonSecundario(criptoT('Cancelar'), () => _terminar(modelo)),
       ],
     );
   }
@@ -312,7 +315,7 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
         criptoTarjeta(Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Te están viendo', style: kCriCuerpoNegrita),
+            Text(criptoT('Te están viendo'), style: kCriCuerpoNegrita),
             const SizedBox(height: 8),
             for (final c in activos)
               Padding(
@@ -334,8 +337,8 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
                               style: kCriCuerpoNegrita),
                           Text(
                               CriptoSesion.rolDe(c.id) == kRolAcompanante
-                                  ? 'Solo mira'
-                                  : 'Puede controlar tu celular',
+                                  ? criptoT('Solo mira')
+                                  : criptoT('Puede controlar tu celular'),
                               style: kCriPequeno),
                         ],
                       ),
@@ -350,7 +353,7 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text('Sacar',
+                        child: Text(criptoT('Sacar'),
                             style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w700)),
                       ),
@@ -362,12 +365,12 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
         )),
         if (hayTecnico && !modelo.inputOk) ...[
           const SizedBox(height: 16),
-          criptoBotonPrincipal('Permitir que el técnico toque mi pantalla',
+          criptoBotonPrincipal(criptoT('Permitir que el técnico toque mi pantalla'),
               () => modelo.toggleInput(),
               icono: Icons.touch_app_outlined),
           const SizedBox(height: 8),
-          const Text(
-              'Solo si el técnico te lo pide. Mientras tanto él solo puede mirar y guiarte.',
+          Text(
+              criptoT('Solo si el técnico te lo pide. Mientras tanto él solo puede mirar y guiarte.'),
               style: kCriPequeno),
         ],
         const SizedBox(height: 16),
@@ -378,12 +381,12 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFFCD34D)),
           ),
-          child: const Text(
-              'Para escribir una clave, pide al técnico que espere. En Android 15 o superior las claves se ocultan solas. Nunca dictes claves.',
+          child: Text(
+              criptoT('Para escribir una clave, pide al técnico que espere. En Android 15 o superior las claves se ocultan solas. Nunca dictes claves.'),
               style: kCriCuerpo),
         ),
         const SizedBox(height: 24),
-        criptoBotonPrincipal('Terminar ayuda', () => _terminar(modelo),
+        criptoBotonPrincipal(criptoT('Terminar ayuda'), () => _terminar(modelo),
             fondo: kCriptoRojo),
       ],
     );
@@ -401,19 +404,23 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
         final String estado;
         if (!modelo.isStart) {
           cuerpo = _vistaInicial(modelo);
-          estado = 'Soporte de CRIPTO Software';
+          estado = criptoT('Soporte de CRIPTO Software');
         } else if (activos.isEmpty) {
           cuerpo = _vistaEsperando(modelo);
-          estado = 'Esperando al técnico…';
+          estado = criptoT('Esperando al técnico…');
         } else {
           cuerpo = _vistaSesion(modelo, activos);
-          estado = 'Soporte en curso';
+          estado = criptoT('Soporte en curso');
         }
         return Scaffold(
           backgroundColor: kCriptoFondo,
           body: Column(
             children: [
-              CriptoEncabezado(subtitulo: estado, acciones: [_menu()]),
+              CriptoEncabezado(subtitulo: estado, acciones: [
+                CriptoBotonIdioma(
+                    color: Colors.white, alCambiar: () => setState(() {})),
+                _menu(),
+              ]),
               Expanded(child: cuerpo),
             ],
           ),
