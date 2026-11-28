@@ -145,6 +145,15 @@
 #                     «CRIPTO-Support»). El identificador de Android
 #                     (com.criptosoftware.soporte) NO cambia. Avisos de
 #                     Android (arranque y canal) en el idioma del celular.
+#   v2.8  28/11/2026  Fase 2: modo «Soy técnico» en el celular
+#                     (cripto_tecnico_celular.dart). Solo con licencia de
+#                     técnico: celular a celular y celular a PC, con Técnico /
+#                     Acompañante y equipos recientes. Blindaje en el equipo
+#                     que recibe: la PC ahora también exige pase válido cuando
+#                     se conecta un CELULAR (entre PC todo sigue igual y
+#                     gratis). En el celular, «Más opciones» ya no muestra la
+#                     pantalla de conexión de RustDesk: se conecta solo desde
+#                     «Soy técnico». Windows no cambia en pantallas.
 # ============================================================
 
 import os
@@ -1305,6 +1314,65 @@ def aplicar_idiomas() -> None:
        f"{nuevas.count(chr(10))} agregados)")
 
 
+def aplicar_celular_a_pc() -> None:
+    """v2.8 — En la PC, un celular (modo «Soy técnico») solo entra con pase válido."""
+    reemplazar_una_vez(
+        RAIZ / "src" / "server" / "connection.rs",
+        r"(            // CRIPTO v2\.3: en el celular solo entra un técnico con pase válido\.\n)",
+        "            // CRIPTO v2.8: en la PC, un celular (modo «Soy técnico») solo entra\n"
+        "            // con pase válido del servidor de licencias. Entre PC no cambia nada.\n"
+        "            #[cfg(not(target_os = \"android\"))]\n"
+        "            if crate::cripto_licencia::es_celular(&lr.my_platform)\n"
+        "                && !crate::cripto_licencia::validar_pase(&lr.my_id, &lr.cripto_pase).await\n"
+        "            {\n"
+        "                self.send_login_error(crate::cripto_licencia::MENSAJE_CELULAR_SIN_LICENCIA)\n"
+        "                    .await;\n"
+        "                sleep(1.).await;\n"
+        "                return false;\n"
+        "            }\n"
+        "            // CRIPTO v2.3: en el celular solo entra un técnico con pase válido.\n",
+        "La PC exige pase válido a los celulares",
+    )
+
+
+def aplicar_celular_tecnico() -> None:
+    """v2.8 — Modo «Soy técnico» en el celular (solo Android)."""
+    origen = RAIZ / "cripto" / "flutter"
+    destino = RAIZ / "flutter" / "lib" / "cripto"
+    destino.mkdir(parents=True, exist_ok=True)
+    for nombre in ("cripto_tecnico.dart", "cripto_licencia.dart", "cripto_tecnico_celular.dart"):
+        archivo = origen / nombre
+        if not archivo.exists():
+            error(f"Falta el archivo {archivo.relative_to(RAIZ)}.")
+        shutil.copyfile(archivo, destino / nombre)
+    ok("Modo técnico del celular copiado (cripto_tecnico_celular.dart)")
+
+    lib = RAIZ / "flutter" / "lib"
+    # Rol Técnico / Acompañante aplicado a cada sesión que abre el celular.
+    modelo = lib / "models" / "model.dart"
+    reemplazar_una_vez(
+        modelo,
+        r"(?m)^(import '\.\./common\.dart';)$",
+        "import '../common.dart';\nimport '../cripto/cripto_tecnico.dart';",
+        "Importación del rol del técnico (celular)",
+    )
+    reemplazar_una_vez(
+        modelo,
+        r"setViewOnly\(\s*peerId,\s*bind\.sessionGetToggleOptionSync\(\s*sessionId: sessionId, arg: kOptionToggleViewOnly\)\);",
+        "setViewOnly(peerId, criptoAplicarRol(sessionId, peerId));",
+        "Rol Técnico / Acompañante en las sesiones del celular",
+    )
+    # «Más opciones» sin la pantalla de conexión de RustDesk: se conecta desde «Soy técnico».
+    reemplazar_una_vez(
+        lib / "mobile" / "pages" / "home_page.dart",
+        r"if \(!bind\.isIncomingOnly\(\)\) \{\s*_pages\.add\(ConnectionPage\(",
+        "if (!bind.isIncomingOnly() && !isAndroid) {\n"
+        "      // CRIPTO v2.8: en el celular se conecta solo desde «Soy técnico».\n"
+        "      _pages.add(ConnectionPage(",
+        "Conexión solo desde «Soy técnico» en el celular",
+    )
+
+
 def main() -> None:
     windows = "--windows" in sys.argv[1:]
     print(f"[CRIPTO] Aplicando marca CRIPTO Support ({'Windows' if windows else 'Android'})…")
@@ -1312,12 +1380,14 @@ def main() -> None:
     aplicar_servidor(servidor, llave, NOMBRE_INTERNO_WINDOWS if windows else NOMBRE_APP)
     aplicar_licencia()  # v2.3 — pases de licencia (Android valida, Windows pide)
     aplicar_idiomas()  # v2.7 — español e inglés (Windows y Android)
+    aplicar_celular_a_pc()  # v2.8 — la PC exige pase a los celulares
     if windows:
         aplicar_windows()
     else:
         aplicar_android()
         aplicar_iconos()
         aplicar_flutter()
+        aplicar_celular_tecnico()  # v2.8 — modo «Soy técnico»
     print("[CRIPTO] Marca aplicada correctamente.")
 
 
