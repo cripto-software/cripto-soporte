@@ -8,6 +8,9 @@
 //               de un solo uso con la credencial de su licencia y lo envía
 //               junto con la solicitud de conexión. Sin licencia no pide
 //               nada (la versión gratuita funciona igual entre PC).
+//             • PC (v1.2): si quien se conecta es un CELULAR (modo «Soy
+//               técnico»), también exige un pase válido. Entre PC todo
+//               sigue igual (versión gratuita).
 //             • App del celular (Android): al recibir una conexión pregunta
 //               al servidor si el pase es válido. Si no lo es, si no hay
 //               pase o si no hay internet, RECHAZA la conexión antes de
@@ -24,6 +27,10 @@
 // Historial
 //   v1.0  26/11/2026  Versión inicial (pases de un solo uso).
 //   v1.1  27/11/2026  El ID del técnico se envía como «idSoporte» (nombres CRIPTO).
+//   v1.2  28/11/2026  Fase 2 (modo técnico en el celular): es_celular() y
+//                     mensaje para el celular sin licencia que intenta entrar
+//                     a una PC; mensajes en español e inglés; el pase indica
+//                     el origen (CELULAR o PC) para el registro de sesiones.
 // ============================================================
 
 use hbb_common::{
@@ -46,7 +53,15 @@ pub const OPCION_CREDENCIAL: &str = "cripto-credencial";
 /// Mensaje que recibe un técnico sin autorización al intentar entrar a un celular.
 #[allow(dead_code)]
 pub const MENSAJE_BLOQUEO: &str = "Este técnico no está autorizado por CRIPTO. \
-Si necesita ayuda, escríbanos al WhatsApp 098 566 6807.";
+Si necesita ayuda, escríbanos al WhatsApp 098 566 6807. / \
+This technician is not authorized by CRIPTO. \
+If you need help, message us on WhatsApp +593 98 566 6807.";
+/// v1.2 — Mensaje para un celular sin licencia de técnico que intenta entrar a una PC.
+#[allow(dead_code)]
+pub const MENSAJE_CELULAR_SIN_LICENCIA: &str = "Para dar soporte desde el celular necesita \
+una licencia de técnico CRIPTO Pro activa. WhatsApp 098 566 6807. / \
+Giving support from a phone requires an active CRIPTO Pro technician license. \
+WhatsApp +593 98 566 6807.";
 
 const ESPERA_MAXIMA: Duration = Duration::from_secs(8);
 /// Un pase ya validado en ESTE celular se acepta de nuevo durante este tiempo
@@ -55,6 +70,13 @@ const VIGENCIA_LOCAL: Duration = Duration::from_secs(600);
 
 lazy_static::lazy_static! {
     static ref VALIDADOS: Mutex<HashMap<String, Instant>> = Mutex::new(HashMap::new());
+}
+
+/// v1.2 — ¿La conexión viene de un celular? (según la plataforma que declara).
+#[allow(dead_code)]
+pub fn es_celular(plataforma: &str) -> bool {
+    let p = plataforma.trim().to_lowercase();
+    p == "android" || p == "ios"
 }
 
 /// ID sin el sufijo «@servidor».
@@ -133,7 +155,9 @@ pub async fn pedir_pase(destino_id: &str) -> String {
     let cuerpo = json!({
         "idSoporte": id_puro(&Config::get_id()),
         "destinoId": id_puro(destino_id),
-        "destino": "CELULAR"
+        "destino": "CELULAR",
+        // v1.2 — Desde dónde se conecta el técnico (para el registro de sesiones).
+        "origen": if cfg!(target_os = "android") { "CELULAR" } else { "PC" }
     });
     let Some(r) = enviar("pase", cuerpo, Some(&cred)).await else {
         return String::new();
