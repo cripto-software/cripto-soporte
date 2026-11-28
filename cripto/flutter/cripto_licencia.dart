@@ -28,13 +28,20 @@
 //                     las tres funciones.
 //   v1.3  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
 //                     y nombre «CRIPTO Support».
+//   v1.4  28/11/2026  Fase 2 (modo técnico en el celular): el nombre del
+//                     equipo en Android es la marca y el modelo del celular
+//                     (antes «localhost»); criptoCerrarLicencia() para quitar
+//                     la licencia de este equipo; aviso de los Términos de uso
+//                     para técnicos en la ventana de activación.
 // ============================================================
 
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/platform_model.dart';
 import 'cripto_idioma.dart';
@@ -47,6 +54,31 @@ const Color kCriptoLicAzul = Color(0xFF2563EB);
 const Color kCriptoLicVerde = Color(0xFF15803D);
 const Color kCriptoLicTexto = Color(0xFF0F172A);
 const Color kCriptoLicError = Color(0xFFB91C1C);
+
+/// v1.4 — Términos de uso que acepta el técnico al activar su licencia.
+const String kCriptoUrlTerminosTecnico = 'https://pc-green.com/cripto-soporte/terminos';
+
+/// v1.4 — Nombre del equipo que se registra con la licencia.
+/// Android: marca y modelo del celular. Windows: nombre del computador.
+Future<String> criptoNombreEquipo() async {
+  try {
+    if (Platform.isAndroid) {
+      final a = await DeviceInfoPlugin().androidInfo;
+      final nombre = '${a.manufacturer} ${a.model}'.trim();
+      return nombre.isEmpty ? 'Android' : nombre;
+    }
+    return Platform.localHostname;
+  } catch (_) {
+    return Platform.isAndroid ? 'Android' : 'Equipo';
+  }
+}
+
+/// v1.4 — Quita la licencia de este equipo (credencial y datos visibles).
+Future<void> criptoCerrarLicencia() async {
+  await bind.mainSetLocalOption(key: kCriptoOpcionCredencial, value: '');
+  await bind.mainSetLocalOption(key: kCriptoOpcionLicenciaInfo, value: '');
+  debugPrint('[CRIPTO] Licencia de técnico quitada de este equipo');
+}
 
 /// Datos visibles de la licencia activada (sin secretos).
 Map<String, dynamic>? criptoLicenciaInfo() {
@@ -161,6 +193,7 @@ class _VentanaActivarState extends State<_VentanaActivar> {
     });
     try {
       final miId = await bind.mainGetMyId();
+      final nombreEquipo = await criptoNombreEquipo(); // v1.4
       final resp = await http
           .post(
             Uri.parse('$kCriptoApiLicencia/activar'),
@@ -170,7 +203,7 @@ class _VentanaActivarState extends State<_VentanaActivar> {
               'idSoporte': miId,
               'nombreTecnico': nombre,
               'correo': _correo.text.trim(),
-              'nombreEquipo': Platform.localHostname,
+              'nombreEquipo': nombreEquipo,
             }),
           )
           .timeout(const Duration(seconds: 20));
@@ -251,6 +284,25 @@ class _VentanaActivarState extends State<_VentanaActivar> {
               enabled: !_enviando,
               keyboardType: TextInputType.emailAddress,
               decoration: _campo(criptoT('Correo (opcional)'), 'tecnico@empresa.com'),
+            ),
+            const SizedBox(height: 12),
+            // v1.4 — Términos de uso para técnicos.
+            InkWell(
+              onTap: () async {
+                try {
+                  await launchUrl(Uri.parse(kCriptoUrlTerminosTecnico),
+                      mode: LaunchMode.externalApplication);
+                } catch (e) {
+                  debugPrint('[CRIPTO] No se pudieron abrir los términos (${e.runtimeType})');
+                }
+              },
+              child: Text(
+                criptoT('Al activar, acepta los Términos de uso para técnicos de CRIPTO Support.'),
+                style: const TextStyle(
+                    fontSize: 13,
+                    color: kCriptoLicAzul,
+                    decoration: TextDecoration.underline),
+              ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),

@@ -21,6 +21,9 @@
 //                     listo; el cliente solo pulsa enviar.
 //   v1.2  27/11/2026  Textos en español e inglés (criptoT, cripto_idioma.dart)
 //                     y nombre «CRIPTO Support». Botón «Idioma» en el encabezado.
+//   v1.3  28/11/2026  Fase 2: botón «Soy técnico» bajo «Persona de confianza»
+//                     (abre el modo técnico; sin licencia solo explica cómo
+//                     obtenerla). «Pedir ayuda» no cambia.
 // ============================================================
 
 import 'dart:async';
@@ -41,6 +44,7 @@ import 'cripto_comun.dart';
 import 'cripto_lopdp.dart';
 import 'cripto_solicitud.dart';
 import 'cripto_idioma.dart';
+import 'cripto_tecnico_celular.dart';
 
 class CriptoInicioPage extends StatefulWidget {
   const CriptoInicioPage({Key? key}) : super(key: key);
@@ -232,6 +236,10 @@ class _CriptoInicioPageState extends State<CriptoInicioPage> {
         const SizedBox(height: 20),
         criptoBotonSecundario(criptoT('Persona de confianza'),
             () => _abrir(const CriptoAcompanantesPage())),
+        const SizedBox(height: 12),
+        // v1.3 — Modo técnico (solo con licencia de técnico activa).
+        criptoBotonSecundario(criptoT('Soy técnico'),
+            () => _abrir(const CriptoSoyTecnicoPage())),
         const SizedBox(height: 16),
         Text.rich(
           TextSpan(children: [

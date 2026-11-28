@@ -17,6 +17,7 @@
 // ------------------------------------------------------------
 // Historial
 //   v1.0  27/11/2026  Versión inicial.
+//   v1.1  28/11/2026  Textos del modo «Soy técnico» del celular (fase 2).
 // ============================================================
 
 const Map<String, String> kCriptoTextosEn = {
@@ -327,4 +328,37 @@ const Map<String, String> kCriptoTextosEn = {
   "Soporte técnico incluido con CRIPTO Support": "Technical support included with CRIPTO Support",
   "Quiero conocerlo": "Tell me more",
   "Ahora no": "Not now",
+
+  // ---------------- Modo técnico (celular) ----------------
+  "Soy técnico": "I am a technician",
+  "Modo técnico": "Technician mode",
+  "Hola, quiero ser técnico de CRIPTO Support.":
+      "Hi, I would like to become a CRIPTO Support technician.",
+  "Escribe el número completo del cliente.": "Enter the customer's full number.",
+  "Ese es el número de este celular. Escribe el del cliente.":
+      "That is this phone's number. Enter the customer's number.",
+  "¿Cerrar la licencia en este celular?": "Remove the license from this phone?",
+  "Este celular dejará de dar soporte como técnico. Podrás activarla de nuevo con tu código.":
+      "This phone will stop giving support as a technician. You can activate it again with your code.",
+  "Cerrar licencia": "Remove license",
+  "Licencia cerrada en este celular.": "License removed from this phone.",
+  "¿Eres técnico de CRIPTO?": "Are you a CRIPTO technician?",
+  "El modo técnico permite dar soporte desde este celular a otros celulares y computadoras. Es solo para el equipo de PCG S.A.S. y técnicos registrados con licencia CRIPTO Pro.":
+      "Technician mode lets you give support from this phone to other phones and computers. It is only for the PCG S.A.S. team and registered technicians with a CRIPTO Pro license.",
+  "Por seguridad, los equipos de los clientes solo aceptan a técnicos con licencia válida. Cada conexión queda registrada.":
+      "For security, customers' devices only accept technicians with a valid license. Every connection is recorded.",
+  "Quiero ser técnico (WhatsApp)": "I want to be a technician (WhatsApp)",
+  "Si solo necesitas ayuda, vuelve y toca «Pedir ayuda».":
+      "If you only need help, go back and tap “Get help”.",
+  "Conectarme como": "Connect as",
+  "Número del cliente": "Customer's number",
+  "Conectar": "Connect",
+  "Conectando…": "Connecting…",
+  "El cliente debe aceptar la conexión en su equipo. Cada sesión queda registrada.":
+      "The customer must accept the connection on their device. Every session is recorded.",
+  "Recientes": "Recent",
+  "Todavía no te has conectado a ningún equipo.": "You haven't connected to any device yet.",
+  "Cerrar mi licencia en este celular": "Remove my license from this phone",
+  "Al activar, acepta los Términos de uso para técnicos de CRIPTO Support.":
+      "By activating, you accept the CRIPTO Support Terms of use for technicians.",
 };
